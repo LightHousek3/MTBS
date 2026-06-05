@@ -22,6 +22,21 @@ const config = {
         refreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
     },
 
+    cookie: {
+        refreshTokenName: process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken',
+        domain: process.env.COOKIE_DOMAIN || undefined,
+        secure:
+            process.env.COOKIE_SECURE !== undefined
+                ? process.env.COOKIE_SECURE === 'true'
+                : process.env.NODE_ENV === 'production',
+        sameSite:
+            process.env.COOKIE_SAME_SITE ||
+            (process.env.NODE_ENV === 'production' ? 'none' : 'lax'),
+        refreshTokenMaxAgeMs:
+            parseInt(process.env.REFRESH_TOKEN_COOKIE_MAX_AGE_MS, 10) ||
+            7 * 24 * 60 * 60 * 1000,
+    },
+
     cors: {
         origin: process.env.CORS_ORIGIN
             ? process.env.CORS_ORIGIN.split(',')
@@ -49,7 +64,6 @@ const config = {
         },
         from: process.env.EMAIL_FROM || 'noreply@mtbs.vn',
         verificationExpiresHours: parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_HOURS, 10) || 24,
-        resetPasswordExpiresMinutes: parseInt(process.env.RESET_PASSWORD_EXPIRES_MINUTES, 10) || 60,
     },
 
     vnpay: {

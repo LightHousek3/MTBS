@@ -1,6 +1,6 @@
 const { authService } = require('../services');
 const { asyncHandler, ResponseHandler } = require('../utils');
-const { httpStatus, messages } = require('../constants');
+const { messages } = require('../constants');
 const config = require('../config');
 
 /**
@@ -50,6 +50,8 @@ const login = asyncHandler(async (req, res) => {
     const { email, password, deviceId } = req.body;
     const { user, tokens } = await authService.login(email, password, deviceId);
 
+    setRefreshTokenCookie(res, tokens.refreshToken);
+
     ResponseHandler.success(res, {
         message: messages.AUTH.LOGIN_SUCCESS,
         data: {
@@ -68,6 +70,8 @@ const login = asyncHandler(async (req, res) => {
 const loginWithGoogle = asyncHandler(async (req, res) => {
     const { idToken, deviceId } = req.body;
     const { user, tokens } = await authService.loginWithGoogle(idToken, deviceId);
+
+    setRefreshTokenCookie(res, tokens.refreshToken);
 
     ResponseHandler.success(res, {
         message: 'Google login successful',
@@ -88,6 +92,8 @@ const loginWithFacebook = asyncHandler(async (req, res) => {
     const { accessToken, deviceId } = req.body;
     const { user, tokens } = await authService.loginWithFacebook(accessToken, deviceId);
 
+    setRefreshTokenCookie(res, tokens.refreshToken);
+
     ResponseHandler.success(res, {
         message: 'Facebook login successful',
         data: {
@@ -104,8 +110,13 @@ const loginWithFacebook = asyncHandler(async (req, res) => {
  * POST /auth/logout
  */
 const logout = asyncHandler(async (req, res) => {
-    const refreshToken = req.body.refreshToken;
-    await authService.logout(refreshToken);
+    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+
+    if (refreshToken) {
+        await authService.logout(refreshToken);
+    }
+
+    clearRefreshTokenCookie(res);
 
     ResponseHandler.success(res, {
         message: messages.AUTH.LOGOUT_SUCCESS,
@@ -116,13 +127,19 @@ const logout = asyncHandler(async (req, res) => {
  * POST /auth/refresh-token
  */
 const refreshTokens = asyncHandler(async (req, res) => {
-    const refreshToken = req.body.refreshToken;
-    const { accessToken, refreshToken: newRefreshToken } =
-        await authService.refreshTokens(refreshToken);
+    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+    const {
+        accessToken,
+        refreshToken: newRefreshToken,
+        user,
+    } = await authService.refreshTokens(refreshToken);
+
+    setRefreshTokenCookie(res, newRefreshToken);
 
     ResponseHandler.success(res, {
         message: messages.AUTH.TOKEN_REFRESHED,
         data: {
+            user,
             accessToken,
             refreshToken: newRefreshToken,
         },
@@ -141,6 +158,39 @@ const forgotPassword = asyncHandler(async (req, res) => {
         message: messages.AUTH.FORGOT_PASSWORD_SENT,
     });
 });
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Set refresh token as httpOnly cookie
+ */
+const setRefreshTokenCookie = (res, token) => {
+    res.cookie(config.cookie.refreshTokenName, token, getRefreshTokenCookieOptions());
+};
+
+/**
+ * Clear refresh token cookie
+ */
+const clearRefreshTokenCookie = (res) => {
+    res.clearCookie(config.cookie.refreshTokenName, getRefreshTokenCookieOptions({ maxAge: 0 }));
+};
+
+const getRefreshTokenCookieOptions = (overrides = {}) => {
+    const options = {
+        httpOnly: true,
+        secure: config.cookie.secure,
+        sameSite: config.cookie.sameSite,
+        maxAge: config.cookie.refreshTokenMaxAgeMs,
+        path: '/',
+        ...overrides,
+    };
+
+    if (config.cookie.domain) {
+        options.domain = config.cookie.domain;
+    }
+
+    return options;
+};
 
 module.exports = {
     register,

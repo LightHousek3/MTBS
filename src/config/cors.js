@@ -13,8 +13,15 @@ const corsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Device-Id'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Cache-Control',
+        'X-Requested-With',
+        'X-Device-Id',
+    ],
     exposedHeaders: ['X-Total-Count', 'X-Total-Pages'],
     maxAge: 86400, // 24 hours
 };
 
+module.exports = corsOptions;

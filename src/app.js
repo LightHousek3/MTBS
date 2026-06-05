@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 
@@ -41,6 +42,9 @@ app.use(express.json({ limit: '10mb' }));
 
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Parse cookies
+app.use(cookieParser());
 
 // Sanitize request data against NoSQL injection
 app.use(mongoSanitize());

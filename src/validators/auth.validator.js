@@ -38,17 +38,9 @@ const loginWithFacebook = {
     }),
 };
 
-const refreshToken = {
-    body: Joi.object().keys({
-        refreshToken: Joi.string().required(),
-    }),
-};
+const refreshToken = {};
 
-const logout = {
-    body: Joi.object().keys({
-        refreshToken: Joi.string().required(),
-    }),
-};
+const logout = {};
 
 const verifyEmail = {
     body: Joi.object().keys({
