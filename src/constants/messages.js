@@ -31,8 +31,11 @@ const messages = {
     // Generic CRUD
     CRUD: {
         CREATED: (resource) => `Tạo ${resource} thành công`,
+        CREATED_FAIL: (resource) => `Tạo ${resource} thất bại`,
         UPDATED: (resource) => `Cập nhật ${resource} thành công`,
+        UPDATED_FAIL: (resource) => `Cập nhật ${resource} thất bại`,
         DELETED: (resource) => `Xóa ${resource} thành công`,
+        DELETED_FAIL: (resource) => `Xóa ${resource} thất bại`,
         FETCHED: (resource) => `Lấy thông tin ${resource} thành công`,
         NOT_FOUND: (resource) => `Không tìm thấy ${resource}`,
         ALREADY_EXISTS: (resource) => `${resource} đã tồn tại`,

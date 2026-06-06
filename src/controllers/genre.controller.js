@@ -40,10 +40,16 @@ const updateGenre = asyncHandler(async (req, res) => {
 
 const deleteGenre = asyncHandler(async (req, res) => {
     const status = await genreService.deleteGenreById(req.params.id);
-    ResponseHandler.success(res, {
-        message: messages.CRUD.DELETED('Genre'),
-        data: { status },
-    });
+    if (status) {
+        ResponseHandler.success(res, {
+            message: messages.CRUD.DELETED('Genre'),
+            data: { status },
+        });
+    } else {
+        ResponseHandler.error(res, {
+            message: messages.CRUD.DELETED_FAIL('Genre'),
+        });
+    }
 });
 
 module.exports = {
