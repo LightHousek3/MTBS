@@ -55,6 +55,15 @@ const messages = {
         SERVICE_UNAVAILABLE: 'Dịch vụ tạm thời không khả dụng',
         TOO_MANY_REQUESTS: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
     },
+
+    // Theater
+    THEATER: {
+        GEOCODE_SUCCESS: 'Cập nhật tọa độ rạp thành công',
+        GEOCODE_NOT_FOUND:
+            'Không thể xác định tọa độ cho địa chỉ đã cung cấp. Vui lòng thử một địa chỉ cụ thể hơn.',
+        GEOCODE_SERVICE_ERROR:
+            'Dịch vụ phân định vị trí tạm thời không khả dụng. Vui lòng thử lại sau.',
+    },
 };
 
 module.exports = messages;

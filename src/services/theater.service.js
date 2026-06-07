@@ -1,6 +1,7 @@
 const { Theater } = require('../models');
 const { ApiError } = require('../utils');
 const { httpStatus, messages } = require('../constants');
+const { geocodeAddress } = require('./geocode.service');
 
 /**
  * Create a theater
@@ -78,6 +79,26 @@ const getLocations = async () => {
     return docs;
 };
 
+/**
+ * Update theater coordinates by geocoding an address via OpenStreetMap Nominatim.
+ * @param {string} id - Theater ID
+ * @param {string} [address] - Address to geocode; falls back to theater's existing address
+ */
+const updateCoordinatesByAddress = async (id) => {
+    const theater = await getTheaterById(id);
+    const targetAddress = theater.address;
+
+    const { lat, lng } = await geocodeAddress(targetAddress);
+
+    theater.coordinates = {
+        type: 'Point',
+        coordinates: [lng, lat], // GeoJSON: [longitude, latitude]
+    };
+
+    await theater.save();
+    return theater;
+};
+
 module.exports = {
     createTheater,
     getLocations,
@@ -85,4 +106,5 @@ module.exports = {
     getTheaterById,
     updateTheaterById,
     deleteTheaterById,
+    updateCoordinatesByAddress,
 };

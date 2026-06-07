@@ -61,6 +61,14 @@ const deleteTheater = asyncHandler(async (req, res) => {
     }
 });
 
+const updateCoordinatesByAddress = asyncHandler(async (req, res) => {
+    const theater = await theaterService.updateCoordinatesByAddress(req.params.id);
+    ResponseHandler.success(res, {
+        message: messages.THEATER.GEOCODE_SUCCESS,
+        data: theater,
+    });
+});
+
 module.exports = {
     createTheater,
     getLocations,
@@ -68,4 +76,5 @@ module.exports = {
     getTheater,
     updateTheater,
     deleteTheater,
+    updateCoordinatesByAddress,
 };

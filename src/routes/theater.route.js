@@ -31,6 +31,11 @@ router.get('/:id', validate(theaterValidator.getTheater), theaterController.getT
 // Admin-only routes
 // ═══════════════════════════════════════════════
 
+/**
+ * @route   POST /api/v1/theaters
+ * @desc    Create a new theater
+ * @access  Admin
+ */
 router.post(
     '/',
     authenticate,
@@ -39,6 +44,11 @@ router.post(
     theaterController.createTheater,
 );
 
+/**
+ * @route   PUT /api/v1/theaters/:id
+ * @desc    Update a existing theater
+ * @access  Admin
+ */
 router.put(
     '/:id',
     authenticate,
@@ -47,12 +57,30 @@ router.put(
     theaterController.updateTheater,
 );
 
+/**
+ * @route   DELETE /api/v1/theaters/:id
+ * @desc    Soft delete a existing theater
+ * @access  Admin
+ */
 router.delete(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
     validate(theaterValidator.deleteTheater),
     theaterController.deleteTheater,
+);
+
+/**
+ * @route   PATCH /api/v1/theaters/:id/coordinates
+ * @desc    Geocode an address with OpenStreetMap and update theater coordinates
+ * @access  Admin
+ */
+router.patch(
+    '/:id/coordinates',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    validate(theaterValidator.updateCoordinates),
+    theaterController.updateCoordinatesByAddress,
 );
 
 module.exports = router;
