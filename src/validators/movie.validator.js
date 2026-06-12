@@ -59,12 +59,12 @@ const updateMovie = {
       image: Joi.object({
         url: Joi.string().uri().required(),
         publicId: Joi.string().required(),
-      }),
+      }).allow(null),
 
       trailer: Joi.object({
         url: Joi.string().uri().required(),
         publicId: Joi.string().required(),
-      }),
+      }).allow(null),
 
       type: Joi.string().valid(...Object.values(MOVIE_TYPE)),
 
@@ -101,8 +101,11 @@ const deleteMovie = {
   }),
 };
 
+const getMovie = deleteMovie;
+
 const getMovies = {
   query: Joi.object().keys({
+    keyword: Joi.string(),
     title: Joi.string(),
     genres: Joi.string(),
     type: Joi.string().valid(...Object.values(MOVIE_TYPE)),
@@ -142,6 +145,7 @@ module.exports = {
   createMovie,
   updateMovie,
   deleteMovie,
+  getMovie,
   getMovies,
   getNowShowingMovies,
   getUpcomingMovies,

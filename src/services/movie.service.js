@@ -12,6 +12,8 @@ const { Movie, Showtime, Genre, Booking } = require("../models");
 const { ApiError } = require("../utils");
 const { httpStatus, messages, BOOKING_STATUS } = require("../constants");
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
  * Tạo movie mới
  * - Kiểm tra trùng title, nếu trùng ném lỗi conflict
@@ -21,7 +23,7 @@ const { httpStatus, messages, BOOKING_STATUS } = require("../constants");
 const createMovie = async (body) => {
   const existing = await Movie.findOne({
     title: {
-      $regex: `^${body.title}$`,
+      $regex: `^${escapeRegExp(body.title.trim())}$`,
       $options: "i",
     },
   });
@@ -39,8 +41,6 @@ const createMovie = async (body) => {
     }
   }
 
-  console.log(body, existing);
-
   return Movie.create(body);
 };
 
@@ -55,9 +55,65 @@ const createMovie = async (body) => {
  * Nếu không có `location`, dùng `Movie.paginate` (plugin mongoose-paginate) để xử lý.
  */
 const getMovies = async (filter, options) => {
+  const keyword = filter.keyword?.trim();
+  const titleKeyword = filter.title?.trim();
+  const originKeyword = filter.origin?.trim();
+
+  if (keyword) {
+    filter.$or = [
+      {
+        title: {
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+      {
+        origin: {
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+    ];
+    delete filter.keyword;
+    delete filter.title;
+    delete filter.origin;
+  } else if (titleKeyword && originKeyword) {
+    filter.$or = [
+      {
+        title: {
+          $regex: titleKeyword,
+          $options: "i",
+        },
+      },
+      {
+        origin: {
+          $regex: originKeyword,
+          $options: "i",
+        },
+      },
+    ];
+    delete filter.keyword;
+    delete filter.title;
+    delete filter.origin;
+  } else if (titleKeyword) {
+    delete filter.keyword;
+    filter.title = {
+      $regex: titleKeyword,
+      $options: "i",
+    };
+  } else if (originKeyword) {
+    delete filter.keyword;
+    filter.origin = {
+      $regex: originKeyword,
+      $options: "i",
+    };
+  } else {
+    delete filter.keyword;
+  }
+
   // Check if location filter exists
   if (filter.location) {
-    const location = filter.location;
+    const location = filter.location.trim();
     delete filter.location; // Remove location from filter object
 
     // Use aggregation to join with Showtime, Screen, and Theater
@@ -103,7 +159,10 @@ const getMovies = async (filter, options) => {
       // Match by location
       {
         $match: {
-          "theater.location": location,
+          "theater.location": {
+            $regex: escapeRegExp(location),
+            $options: "i",
+          },
         },
       },
       // Group back to get unique movies
@@ -237,6 +296,16 @@ const ensureMovieDateWindowNotShrunk = async ({
   }
 };
 
+const ensureMovieDateRangeValid = ({ releaseDate, endDate }) => {
+  if (!releaseDate || !endDate) {
+    return;
+  }
+
+  if (new Date(endDate) <= new Date(releaseDate)) {
+    throw ApiError.badRequest("endDate must be greater than releaseDate");
+  }
+};
+
 /**
  * Cập nhật movie theo id
  * - Kiểm tra trùng title (ngoại trừ chính movie đang cập nhật)
@@ -250,8 +319,11 @@ const updateMovieById = async (id, updateBody) => {
 
   if (updateBody.title) {
     const existing = await Movie.findOne({
-      title: updateBody.title,
       _id: { $ne: id },
+      title: {
+        $regex: `^${escapeRegExp(updateBody.title.trim())}$`,
+        $options: "i",
+      },
     });
     if (existing) {
       throw ApiError.conflict(messages.CRUD.ALREADY_EXISTS("Movie"));
@@ -269,6 +341,11 @@ const updateMovieById = async (id, updateBody) => {
 
   const effectiveReleaseDate = updateBody.releaseDate || movie.releaseDate;
   const effectiveEndDate = updateBody.endDate || movie.endDate;
+
+  ensureMovieDateRangeValid({
+    releaseDate: effectiveReleaseDate,
+    endDate: effectiveEndDate,
+  });
 
   if (effectiveReleaseDate && effectiveEndDate) {
     await ensureMovieDateWindowNotShrunk({
