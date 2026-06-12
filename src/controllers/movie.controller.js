@@ -32,6 +32,7 @@ const createMovie = asyncHandler(async (req, res) => {
  */
 const getMovies = asyncHandler(async (req, res) => {
   const filter = pick(req.query, [
+    "keyword",
     "title",
     "genres",
     "type",

@@ -47,7 +47,7 @@ router.get("/", validate(movieValidator.getMovies), movieController.getMovies);
  * @access  Public
  */
 // Lấy chi tiết phim theo `id` (public)
-router.get("/:id", movieController.getMovie);
+router.get("/:id", validate(movieValidator.getMovie), movieController.getMovie);
 
 // ═══════════════════════════════════════════════
 // Admin-only routes (cần xác thực và quyền ADMIN)
