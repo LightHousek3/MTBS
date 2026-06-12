@@ -47,6 +47,20 @@ const messages = {
         FAILED: 'Xác thực dữ liệu thất bại',
         INVALID_OBJECT_ID: 'Định dạng ID không hợp lệ',
         REQUIRED_FIELD: (field) => `${field} là bắt buộc`,
+        INVALID_TIME_RANGE: 'Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc',
+        SHOWTIME_START_TIME_IN_PAST: 'Không thể tạo hoặc cập nhật suất chiếu trong quá khứ',
+        MOVIE_SCHEDULE_NOT_CONFIGURED: 'Phim chưa được cấu hình ngày khởi chiếu hoặc ngày kết thúc',
+        SHOWTIME_OUTSIDE_MOVIE_RANGE: 'Suất chiếu phải nằm trong khoảng thời gian chiếu của phim',
+        MOVIE_DURATION_NOT_CONFIGURED: 'Phim chưa được cấu hình thời lượng hợp lệ',
+        SHOWTIME_SHORTER_THAN_MOVIE_DURATION: (duration) =>
+            `Thời lượng suất chiếu phải lớn hơn hoặc bằng thời lượng phim (${duration} phút)`,
+        SHOWTIME_OVERLAP_IN_SCREEN: (bufferMinutes) =>
+            `Suất chiếu bị trùng lịch hoặc không đảm bảo ${bufferMinutes} phút chuẩn bị phòng`,
+        SHOWTIME_HAS_ACTIVE_BOOKINGS: 'Không thể cập nhật hoặc xóa suất chiếu đã có booking đang hoạt động',
+        MOVIE_DATE_RANGE_CANNOT_SHRINK:
+            'Không thể thu hẹp thời gian chiếu vì phim đã có suất chiếu nằm ngoài khoảng mới',
+        MOVIE_HAS_ACTIVE_BOOKINGS: 'Không thể xóa phim đã có booking đang hoạt động',
+        MOVIE_HAS_SHOWTIMES: 'Không thể xóa phim đã có suất chiếu',
     },
 
     // Server
