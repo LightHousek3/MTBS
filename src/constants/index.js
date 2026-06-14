@@ -65,6 +65,18 @@ const SEAT_TYPE = {
     SWEETBOX: 'SWEETBOX',
 };
 
+const TICKET_TYPE_SEAT = SEAT_TYPE;
+
+const TICKET_TYPE_MOVIE = {
+    '2D': '2D',
+    '3D': '3D',
+};
+
+const TICKET_DAY_TYPE = {
+    WEEKDAY: 'WEEKDAY',
+    WEEKEND: 'WEEKEND',
+};
+
 const BANNER_TYPE = {
     IMAGE: 'IMAGE',
     VIDEO: 'VIDEO',
@@ -119,6 +131,24 @@ const DAY_TYPE = {
     WEEKEND: true,
 };
 
+const REDEEM_STATUS = {
+    INACTIVE: 'INACTIVE',
+    AVAILABLE: 'AVAILABLE',
+};
+
+const REDEEMGIFT_STATUS = {
+    PENDING: 'PENDING',
+    DELIVERING: 'DELIVERING',
+    DELIVERED: 'DELIVERED',
+    CANCELLED: 'CANCELLED',
+};
+
+const LOYALTY_TRANSACTION_TYPE = {
+    EARN: 'EARN',
+    SPEND: 'SPEND',
+    REFUND: 'REFUND',
+};
+
 module.exports = {
     httpStatus,
     messages,
@@ -132,6 +162,9 @@ module.exports = {
     SHOWTIME_BUFFER_MINUTES,
     SEAT_STATUS,
     SEAT_TYPE,
+    TICKET_TYPE_SEAT,
+    TICKET_TYPE_MOVIE,
+    TICKET_DAY_TYPE,
     BANNER_TYPE,
     SERVICE_STATUS,
     SERVICE_TYPE,
@@ -142,4 +175,7 @@ module.exports = {
     BOOKING_STATUS,
     BOOKING_HOLD_MINUTES,
     DAY_TYPE,
+    REDEEM_STATUS,
+    REDEEMGIFT_STATUS,
+    LOYALTY_TRANSACTION_TYPE,
 };
