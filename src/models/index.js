@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 const User = require('./user.model');
 const RefreshToken = require('./refreshToken.model');
 const Genre = require('./genre.model');
@@ -10,12 +11,20 @@ const Screen = require('./screen.model');
 const Redeem = require('./redeem.model');
 const RedeemGift = require('./redeemGift.model');
 const LoyaltyTransaction = require('./loyaltyTransaction.model');
+=======
+const User = require("./user.model");
+const RefreshToken = require("./refreshToken.model");
+const Genre = require("./genre.model");
+const Theater = require("./theater.model");
+const TicketPrice = require("./ticketPrice.model");
+>>>>>>> Stashed changes
 
 module.exports = {
   User,
   RefreshToken,
   Genre,
   Theater,
+<<<<<<< Updated upstream
   Promotion,
   Movie,
   Showtime,
@@ -24,4 +33,7 @@ module.exports = {
   Redeem,
   RedeemGift,
   LoyaltyTransaction,
+=======
+  TicketPrice,
+>>>>>>> Stashed changes
 };

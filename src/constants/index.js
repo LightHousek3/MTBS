@@ -65,6 +65,19 @@ const SEAT_TYPE = {
   SWEETBOX: "SWEETBOX",
 };
 
+const TICKET_TYPE_SEAT = SEAT_TYPE;
+
+const TICKET_TYPE_MOVIE = {
+  "2D": "2D",
+  "3D": "3D",
+};
+
+const TICKET_DAY_TYPE = {
+  WEEKDAY: "WEEKDAY",
+  WEEKEND: "WEEKEND",
+>>>>>>> Stashed changes
+};
+
 const BANNER_TYPE = {
   IMAGE: "IMAGE",
   VIDEO: "VIDEO",
@@ -150,6 +163,9 @@ module.exports = {
   SHOWTIME_BUFFER_MINUTES,
   SEAT_STATUS,
   SEAT_TYPE,
+  TICKET_TYPE_SEAT,
+  TICKET_TYPE_MOVIE,
+  TICKET_DAY_TYPE,
   BANNER_TYPE,
   SERVICE_STATUS,
   SERVICE_TYPE,
