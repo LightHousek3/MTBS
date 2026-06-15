@@ -56,6 +56,7 @@ const redeemGift = asyncHandler(async (req, res) => {
         redeemId: req.params.id,
         amount: req.body.amount,
         address: req.body.address,
+        phone: req.body.phone,
     });
 
     ResponseHandler.created(res, {
