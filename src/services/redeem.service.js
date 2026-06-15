@@ -129,7 +129,7 @@ const deleteRedeemById = async (id) => {
     return Redeem.softDeleteById(id);
 };
 
-const redeemGift = async ({ userId, redeemId, amount = 1, address = '' }) => {
+const redeemGift = async ({ userId, redeemId, amount = 1, address = '', phone }) => {
     const normalizedAmount = Number(amount);
 
     if (!Number.isInteger(normalizedAmount) || normalizedAmount < 1) {
@@ -172,6 +172,7 @@ const redeemGift = async ({ userId, redeemId, amount = 1, address = '' }) => {
         redeem: redeem._id,
         amount: normalizedAmount,
         address,
+        phone,
         expectedDeliveryDate: addDays(new Date(), 14),
         transactionNo,
         status: REDEEMGIFT_STATUS.PENDING,

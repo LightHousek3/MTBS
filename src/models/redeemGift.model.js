@@ -31,6 +31,12 @@ const redeemGiftSchema = new mongoose.Schema(
       maxlength: 255,
       default: "",
     },
+    phone: {
+      type: String,
+      trim: true,
+      maxlength: 20,
+      default: "",
+    },
     expectedDeliveryDate: {
       type: Date,
     },
