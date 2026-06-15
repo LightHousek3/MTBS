@@ -5,6 +5,9 @@ const corsOptions = {
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
 
+        // In development, allow all origins to simplify testing from local frontends
+        // if (config.env !== 'production') return callback(null, true);
+
         if (config.cors.origin.includes(origin)) {
             callback(null, true);
         } else {

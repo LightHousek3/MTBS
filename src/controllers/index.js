@@ -10,6 +10,7 @@ const redeemController = require('./redeem.controller');
 const redeemGiftController = require('./redeemGift.controller');
 const recommendationController = require('./recommendation.controller');
 const ticketPriceController = require('./ticketPrice.controller');
+const seatController = require('./seat.controller');
 
 module.exports = {
     authController,
@@ -24,4 +25,5 @@ module.exports = {
     redeemGiftController,
     recommendationController,
     ticketPriceController,
+    seatController,
 };

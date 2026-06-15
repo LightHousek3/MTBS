@@ -8,6 +8,7 @@ const screenValidator = require('./screen.validator');
 const redeemValidator = require('./redeem.validator');
 const recommendationValidator = require('./recommendation.validator');
 const ticketPriceValidator = require('./ticketPrice.validator');
+const seatValidator = require('./seat.validator');
 
 module.exports = {
     authValidator,
@@ -20,4 +21,5 @@ module.exports = {
     redeemValidator,
     recommendationValidator,
     ticketPriceValidator,
+    seatValidator,
 };
