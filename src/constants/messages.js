@@ -56,7 +56,8 @@ const messages = {
             `Thời lượng suất chiếu phải lớn hơn hoặc bằng thời lượng phim (${duration} phút)`,
         SHOWTIME_OVERLAP_IN_SCREEN: (bufferMinutes) =>
             `Suất chiếu bị trùng lịch hoặc không đảm bảo ${bufferMinutes} phút chuẩn bị phòng`,
-        SHOWTIME_HAS_ACTIVE_BOOKINGS: 'Không thể cập nhật hoặc xóa suất chiếu đã có booking đang hoạt động',
+        SHOWTIME_HAS_ACTIVE_BOOKINGS:
+            'Không thể cập nhật hoặc xóa suất chiếu đã có booking đang hoạt động',
         MOVIE_DATE_RANGE_CANNOT_SHRINK:
             'Không thể thu hẹp thời gian chiếu vì phim đã có suất chiếu nằm ngoài khoảng mới',
         MOVIE_HAS_ACTIVE_BOOKINGS: 'Không thể xóa phim đã có booking đang hoạt động',
@@ -77,6 +78,12 @@ const messages = {
             'Không thể xác định tọa độ cho địa chỉ đã cung cấp. Vui lòng thử một địa chỉ cụ thể hơn.',
         GEOCODE_SERVICE_ERROR:
             'Dịch vụ phân định vị trí tạm thời không khả dụng. Vui lòng thử lại sau.',
+    },
+    //Ticket Prices
+    TICKETPRICE: {
+        DUPLICATE: (resource) =>
+            `${resource} với cùng loại ghế, loại phim, loại ngày và khoảng thời gian trùng lặp đã tồn tại`,
+        TIME_RANGE: (resource) => `${resource}: Thời gian bắt đầu phải trước thời gian kết thúc`,
     },
 };
 
