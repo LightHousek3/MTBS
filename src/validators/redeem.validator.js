@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const { REDEEM_STATUS, REDEEMGIFT_STATUS } = require('../constants');
-const { objectId, paginationQuery } = require('./custom.validator');
+const { objectId, paginationQuery, phoneNumber } = require('./custom.validator');
 
 const ALL_STATUS_VALUE = 'ALL';
 
@@ -59,6 +59,7 @@ const redeemGift = {
     body: Joi.object().keys({
         amount: Joi.number().integer().min(1).default(1),
         address: Joi.string().trim().max(255).allow('').default(''),
+        phone: Joi.string().trim().required().custom(phoneNumber),
     }),
 };
 
@@ -69,6 +70,7 @@ const createRedeemGift = {
         transactionNo: Joi.string().trim(),
         amount: Joi.number().integer().min(1).default(1),
         address: Joi.string().trim().max(255).allow('').default(''),
+        phone: Joi.string().trim().required().custom(phoneNumber),
         expectedDeliveryDate: Joi.date(),
         status: Joi.string().valid(...Object.values(REDEEMGIFT_STATUS)),
     }),
