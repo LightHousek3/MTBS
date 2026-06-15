@@ -43,21 +43,15 @@ const paginate = (schema) => {
 
         // Populate
         if (options.populate) {
-            // Support both string and array/object for populate
             if (typeof options.populate === 'string') {
-                options.populate.split(',').forEach((populateOption) => {
-                    const parts = populateOption.split('.');
-                    if (parts.length > 1) {
-                        query = query.populate({
-                            path: parts[0],
-                            populate: { path: parts.slice(1).join('.') },
-                        });
-                    } else {
-                        query = query.populate(populateOption.trim());
-                    }
-                });
+                // ex: showtime when populate = screen:name.theater:name-address,movie
+                options.populate
+                    .split(',')
+                    .map((item) => item.trim())
+                    .forEach((item) => {
+                        query = query.populate(parsePopulate(item));
+                    });
             } else {
-                // If it's an array or object, pass directly to mongoose
                 query = query.populate(options.populate);
             }
         }
@@ -82,6 +76,32 @@ const paginate = (schema) => {
             },
         };
     };
+};
+
+const parsePopulate = (populateString) => {
+    // ex: populateString = [screen:name.theater:name-address] or [movie]
+    const levels = populateString.split('.');
+
+    let result = null;
+
+    for (let i = levels.length - 1; i >= 0; i--) {
+        const [path, select] = levels[i].split(':');
+
+        const populateObj = {
+            path,
+            ...(select && {
+                select: select.split('-').join(' '),
+            }),
+        };
+
+        if (result) {
+            populateObj.populate = result;
+        }
+
+        result = populateObj;
+    }
+
+    return result;
 };
 
 module.exports = paginate;
