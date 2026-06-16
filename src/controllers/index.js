@@ -1,4 +1,5 @@
 const authController = require('./auth.controller');
+const bannerController = require('./banner.controller');
 const genreController = require('./genre.controller');
 const theaterController = require('./theater.controller');
 const serviceController = require('./service.controller');
@@ -14,6 +15,7 @@ const seatController = require('./seat.controller');
 
 module.exports = {
     authController,
+    bannerController,
     genreController,
     theaterController,
     serviceController,
