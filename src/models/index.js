@@ -1,5 +1,6 @@
 const User = require('./user.model');
 const RefreshToken = require('./refreshToken.model');
+const Banner = require('./banner.model');
 const Genre = require('./genre.model');
 const Theater = require('./theater.model');
 const Service = require('./service.model');
@@ -18,6 +19,7 @@ const Seat = require('./seat.model');
 module.exports = {
     User,
     RefreshToken,
+    Banner,
     Genre,
     Theater,
     Service,

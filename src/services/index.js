@@ -1,4 +1,5 @@
 const authService = require('./auth.service');
+const bannerService = require('./banner.services');
 const genreService = require('./genre.service');
 const theaterService = require('./theater.service');
 const serviceService = require('./service.service');
@@ -12,6 +13,7 @@ const seatService = require('./seat.service');
 
 module.exports = {
     authService,
+    bannerService,
     genreService,
     theaterService,
     serviceService,
