@@ -13,6 +13,7 @@ const recommendationController = require('./recommendation.controller');
 const ticketPriceController = require('./ticketPrice.controller');
 const seatController = require('./seat.controller');
 const bookingController = require('./booking.controller');
+const paymentController = require('./payment.controller');
 
 module.exports = {
     authController,
@@ -30,4 +31,5 @@ module.exports = {
     ticketPriceController,
     seatController,
     bookingController,
+    paymentController,
 };

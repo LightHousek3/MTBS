@@ -13,6 +13,7 @@ const redeemGiftRoute = require('./redeemGift.route');
 const recommendationRoute = require('./recommendation.route');
 const ticketPriceRoute = require('./ticketPrice.route');
 const bookingRoute = require('./booking.route');
+const paymentRoute = require('./payment.route');
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ const routes = [
     { path: '/recommendations', route: recommendationRoute },
     { path: '/ticket-prices', route: ticketPriceRoute },
     { path: '/bookings', route: bookingRoute },
+    { path: '/payments', route: paymentRoute },
 ];
 
 routes.forEach((route) => {

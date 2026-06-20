@@ -107,6 +107,18 @@ const messages = {
         SERVICE_NOT_IN_THEATER: 'Một hoặc nhiều dịch vụ không thuộc rạp chiếu này',
         PROMOTION_NOT_APPLICABLE: 'Mã khuyến mãi không áp dụng cho đơn đặt vé này',
     },
+
+    // Payment
+    PAYMENT: {
+        SUCCESS: 'Thanh toán thành công',
+        FAILED: 'Thanh toán thất bại',
+        PENDING: 'Thanh toán đang chờ xử lý',
+        NOT_FOUND: 'Không tìm thấy giao dịch thanh toán',
+        ALREADY_PAID: 'Đơn đặt vé này đã được thanh toán',
+        BOOKING_EXPIRED: 'Đơn đặt vé đã hết hạn. Vui lòng đặt vé mới.',
+        INVALID_SIGNATURE: 'Chữ ký thanh toán không hợp lệ',
+        VNPAY_URL_CREATED: 'Tạo đường dẫn thanh toán VNPay thành công',
+    },
 };
 
 module.exports = messages;
