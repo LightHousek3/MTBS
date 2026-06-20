@@ -23,4 +23,16 @@ router.post(
     bookingController.createBooking,
 );
 
+/**
+ * @route   PATCH /api/v1/bookings/:id/cancel
+ * @desc    Cancel a PENDING booking
+ * @access  Customer (owner)
+ */
+router.patch(
+    '/:id/cancel',
+    authenticate,
+    validate(bookingValidator.cancelBooking),
+    bookingController.cancelBooking,
+);
+
 module.exports = router;

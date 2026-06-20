@@ -376,6 +376,33 @@ const createBooking = async (userId, body) => {
         .populate('services.service', 'name type price');
 };
 
+/**
+ * Cancel a booking (customer can only cancel PENDING bookings)
+ */
+const cancelBooking = async (bookingId, userId) => {
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+        throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
+    }
+
+    if (booking.status !== BOOKING_STATUS.PENDING) {
+        throw ApiError.badRequest(messages.BOOKING.CANNOT_CANCEL);
+    }
+
+    booking.status = BOOKING_STATUS.CANCELLED;
+    await booking.save();
+
+    // Cancel associated pending payment (if any)
+    await Payment.findOneAndUpdate(
+        { bookingId: booking._id, paymentStatus: 'PENDING' },
+        { paymentStatus: 'CANCELLED' },
+    );
+
+    return booking;
+};
+
 module.exports = {
     createBooking,
+    cancelBooking,
 };

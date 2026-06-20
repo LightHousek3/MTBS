@@ -17,6 +17,13 @@ const createBooking = {
     }),
 };
 
+const cancelBooking = {
+    params: Joi.object().keys({
+        id: Joi.string().required().custom(objectId),
+    }),
+};
+
 module.exports = {
     createBooking,
+    cancelBooking,
 };
