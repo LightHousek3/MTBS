@@ -85,6 +85,28 @@ const messages = {
             `${resource} với cùng loại ghế, loại phim, loại ngày và khoảng thời gian trùng lặp đã tồn tại`,
         TIME_RANGE: (resource) => `${resource}: Thời gian bắt đầu phải trước thời gian kết thúc`,
     },
+
+    // Booking
+    BOOKING: {
+        HAS_PENDING_BOOKING:
+            'Bạn đang có một đơn đặt vé chưa thanh toán. Vui lòng hoàn tất hoặc hủy nó trước.',
+        SEAT_UNAVAILABLE: 'Một hoặc nhiều ghế đã được đặt hoặc không khả dụng',
+        SEAT_NOT_IN_SCREEN: 'Một hoặc nhiều ghế không thuộc phòng chiếu này',
+        SHOWTIME_ENDED: 'Lịch chiếu này đã kết thúc',
+        SHOWTIME_NOT_BOOKABLE: 'Lịch chiếu này chưa mở bán vé',
+        BOOKING_SUCCESS: 'Đặt vé thành công',
+        BOOKING_CANCELLED: 'Hủy vé thành công',
+        BOOKING_NOT_FOUND: 'Không tìm thấy đơn đặt vé',
+        ALREADY_BOOKED: 'Bạn đã có đơn đặt vé trực tiếp cho lịch chiếu này',
+        CANNOT_CANCEL: 'Chỉ có thể hủy đơn đặt vé đang ở trạng thái chờ',
+        EXPIRED: 'Đơn đặt vé đã hết hạn',
+        NOT_OWNER: 'Bạn không có quyền truy cập đơn đặt vé này',
+        TICKET_PRICE_NOT_FOUND:
+            'Không tìm thấy giá vé cho loại ghế, loại phim và lịch chiếu này. Vui lòng liên hệ hỗ trợ.',
+        SERVICE_NOT_AVAILABLE: 'Một hoặc nhiều dịch vụ đã chọn không khả dụng',
+        SERVICE_NOT_IN_THEATER: 'Một hoặc nhiều dịch vụ không thuộc rạp chiếu này',
+        PROMOTION_NOT_APPLICABLE: 'Mã khuyến mãi không áp dụng cho đơn đặt vé này',
+    },
 };
 
 module.exports = messages;

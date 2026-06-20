@@ -14,7 +14,7 @@ const RedeemGift = require('./redeemGift.model');
 const LoyaltyTransaction = require('./loyaltyTransaction.model');
 const TicketPrice = require('./ticketPrice.model');
 const Seat = require('./seat.model');
-
+const Payment = require('./payment.model');
 
 module.exports = {
     User,
@@ -33,4 +33,5 @@ module.exports = {
     LoyaltyTransaction,
     TicketPrice,
     Seat,
+    Payment,
 };

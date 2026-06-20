@@ -108,19 +108,21 @@ const PROMOTION_STATUS = {
 const PAYMENT_METHOD = {
     VNPAY: 'VNPAY',
     MOMO: 'MOMO',
+    ZALOPAY: 'ZALOPAY',
 };
 
 const PAYMENT_STATUS = {
     PENDING: 'PENDING',
     COMPLETED: 'COMPLETED',
     FAILED: 'FAILED',
-    CANCELLED: 'CANCELLED',
+    REFUNDED: 'REFUNDED',
 };
 
 const BOOKING_STATUS = {
     PENDING: 'PENDING',
     CONFIRMED: 'CONFIRMED',
     CANCELLED: 'CANCELLED',
+    REFUNDED: 'REFUNDED',
 };
 
 /** Minutes a seat hold is reserved before auto-release */

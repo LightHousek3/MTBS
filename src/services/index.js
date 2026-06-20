@@ -10,6 +10,7 @@ const redeemService = require('./redeem.service');
 const recommendationService = require('./recommendation.service');
 const ticketPriceService = require('./ticketPrice.service');
 const seatService = require('./seat.service');
+const bookingService = require('./booking.service');
 
 module.exports = {
     authService,
@@ -24,4 +25,5 @@ module.exports = {
     recommendationService,
     ticketPriceService,
     seatService,
+    bookingService,
 };
