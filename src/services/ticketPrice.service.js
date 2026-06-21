@@ -15,8 +15,8 @@ const checkOverlap = async (
     typeSeat,
     typeMovie,
     dayType,
-    startTime: { $lte: endTime },
-    endTime: { $gte: startTime },
+    startTime: { $lt: endTime },
+    endTime: { $gt: startTime },
     isDeleted: { $ne: true },
   };
   if (excludeId) query._id = { $ne: excludeId };
@@ -37,13 +37,13 @@ const createTicketPrice = async (body) => {
   if (overlap) {
     throw new ApiError(
       httpStatus.CONFLICT,
-      messages.TICKETPRICE.DUPLICATE("TicketPrice"),
+      messages.TICKETPRICE.DUPLICATE,
     );
   }
   if (startTime >= endTime) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      messages.TICKETPRICE.TIME_RANGE("TicketPrice"),
+      messages.TICKETPRICE.TIME_RANGE,
     );
   }
   return TicketPrice.create(body);
@@ -60,7 +60,7 @@ const getTicketPriceById = async (id) => {
   if (!ticketPrice) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
-      messages.TICKETPRICE.NOT_FOUND("TicketPrice"),
+      messages.TICKETPRICE.NOT_FOUND,
     );
   }
   return ticketPrice;
@@ -76,7 +76,7 @@ const updateTicketPriceById = async (id, updateBody) => {
   if (startTime >= endTime) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      messages.TICKETPRICE.TIME_RANGE("TicketPrice"),
+      messages.TICKETPRICE.TIME_RANGE,
     );
   }
   const overlap = await checkOverlap(
@@ -90,7 +90,7 @@ const updateTicketPriceById = async (id, updateBody) => {
   if (overlap) {
     throw new ApiError(
       httpStatus.CONFLICT,
-      messages.TICKETPRICE.DUPLICATE("TicketPrice"),
+      messages.TICKETPRICE.DUPLICATE,
     );
   }
   Object.assign(ticketPrice, updateBody);
@@ -105,7 +105,7 @@ const deleteTicketPriceById = async (id) => {
   if (!status) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
-      messages.TICKETPRICE.NOT_FOUND("TicketPrice"),
+      messages.TICKETPRICE.NOT_FOUND,
     );
   }
   return status;
