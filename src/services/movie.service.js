@@ -113,7 +113,7 @@ const getMovies = async (filter, options) => {
 
   // Check if location filter exists
   if (filter.location) {
-    const location = filter.location.trim();
+    const location = filter.location.trim().normalize("NFC");
     delete filter.location; // Remove location from filter object
 
     // Use aggregation to join with Showtime, Screen, and Theater
@@ -159,10 +159,7 @@ const getMovies = async (filter, options) => {
       // Match by location
       {
         $match: {
-          "theater.location": {
-            $regex: escapeRegExp(location),
-            $options: "i",
-          },
+          "theater.location": location,
         },
       },
       // Group back to get unique movies
@@ -213,7 +210,11 @@ const getMovies = async (filter, options) => {
       }
     }
 
-    const result = await Movie.aggregate(aggregationPipeline);
+    const result = await Movie.aggregate(aggregationPipeline).collation({
+      locale: "vi",
+      strength: 2,
+      normalization: true,
+    });
     // Return paginated result
     const limit = Math.min(Math.max(parseInt(options.limit, 10) || 10, 1), 100);
     const page = Math.max(parseInt(options.page, 10) || 1, 1);

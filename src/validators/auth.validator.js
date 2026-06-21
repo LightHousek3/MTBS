@@ -27,14 +27,14 @@ const login = {
 const loginWithGoogle = {
     body: Joi.object().keys({
         idToken: Joi.string().required(),
-        deviceId: Joi.string().allow(null, ''),
+        deviceId: Joi.string().guid({ version: ['uuidv4'] }).required(),
     }),
 };
 
 const loginWithFacebook = {
     body: Joi.object().keys({
         accessToken: Joi.string().required(),
-        deviceId: Joi.string().allow(null, ''),
+        deviceId: Joi.string().guid({ version: ['uuidv4'] }).required(),
     }),
 };
 

@@ -45,9 +45,13 @@ const userSchema = new mongoose.Schema(
             index: true,
         },
         authProvider: {
-            type: String,
-            enum: Object.values(USER_AUTH_PROVIDER),
-            default: USER_AUTH_PROVIDER.LOCAL,
+            type: [
+                {
+                    type: String,
+                    enum: Object.values(USER_AUTH_PROVIDER),
+                },
+            ],
+            default: [USER_AUTH_PROVIDER.LOCAL],
         },
         avatar: {
             type: String,

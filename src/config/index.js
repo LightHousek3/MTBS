@@ -87,6 +87,8 @@ const config = {
     socialLogin: {
         googleClientId: process.env.GOOGLE_CLIENT_ID || '',
         facebookAppId: process.env.FACEBOOK_APP_ID || '',
+        facebookAppSecret: process.env.FACEBOOK_APP_SECRET || '',
+        facebookGraphApiVersion: process.env.FACEBOOK_GRAPH_API_VERSION || 'v23.0',
     },
 };
 
