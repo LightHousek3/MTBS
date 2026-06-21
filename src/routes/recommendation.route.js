@@ -1,17 +1,17 @@
 const express = require('express');
 const { recommendationController } = require('../controllers');
-const { authenticate, validate } = require('../middlewares');
+const { optionalAuth, validate } = require('../middlewares');
 const { recommendationValidator } = require('../validators');
 
 const router = express.Router();
 
 /**
  * @route   GET /api/v1/recommendations/movies
- * @access  Private
+ * @access  Public, personalized when a valid bearer token is provided
  */
 router.get(
     '/movies',
-    authenticate,
+    optionalAuth,
     validate(recommendationValidator.getMyMovieRecommendations),
     recommendationController.getMyMovieRecommendations,
 );

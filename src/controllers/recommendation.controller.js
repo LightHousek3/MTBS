@@ -14,6 +14,7 @@ const getMyMovieRecommendations = asyncHandler(async (req, res) => {
         meta: {
             strategy: result.strategy,
             historyCount: result.historyCount,
+            authenticated: Boolean(req.user),
             limit: Number(options.limit) || 10,
         },
     });
