@@ -164,6 +164,10 @@ const getColdStartRecommendations = async ({ user, limit }) => {
 const getPersonalizedMovieRecommendations = async (user, options = {}) => {
     const limit = normalizeLimit(options.limit);
 
+    if (!user) {
+        return getColdStartRecommendations({ user: null, limit });
+    }
+
     const bookings = await Booking.find({
         user: user._id || user.id,
         status: BOOKING_STATUS.CONFIRMED,
