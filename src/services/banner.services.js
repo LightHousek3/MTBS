@@ -36,8 +36,24 @@ const getBannerById = async (id) => {
 };
 
 const updateBannerById = async (id, updateBody) => {
-    const banner = await Banner.findByIdAndUpdate(id, updateBody, { new: true });
-    return banner;
+    const banner = await Banner.findById(id);
+    if (!banner) {
+        throw ApiError.notFound(messages.CRUD.NOT_FOUND('Banner'));
+    }
+
+    // Check if url is being updated and already exists
+    if (updateBody.url && updateBody.url !== banner.url) {
+        const existing = await Banner.findOne({
+            url: updateBody.url,
+        });
+        if (existing) {
+            throw ApiError.conflict(messages.CRUD.ALREADY_EXISTS('Banner with this URL'));
+        }
+    }
+
+    Object.assign(banner, updateBody);
+    banner.updatedAt = new Date();
+    return banner.save();
 };
 
 const deleteBannerById = async (id) => {
