@@ -8,6 +8,7 @@ const promotionRoute = require('./promotion.routes');
 const movieRoute = require('./movie.route');
 const showtimeRoute = require('./showtime.route');
 const screenRoute = require('./screen.route');
+const seatRoute = require('./seat.route');
 const redeemRoute = require('./redeem.route');
 const redeemGiftRoute = require('./redeemGift.route');
 const recommendationRoute = require('./recommendation.route');
@@ -27,6 +28,7 @@ const routes = [
     { path: '/movies', route: movieRoute },
     { path: '/showtimes', route: showtimeRoute },
     { path: '/screens', route: screenRoute },
+    { path: '/seats', route: seatRoute },
     { path: '/redeems', route: redeemRoute },
     { path: '/redeem-gifts', route: redeemGiftRoute },
     { path: '/recommendations', route: recommendationRoute },
