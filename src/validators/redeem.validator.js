@@ -96,6 +96,7 @@ const createRedeemGift = {
         address: Joi.string().trim().max(255).allow('').default(''),
         phone: Joi.string().trim().required().custom(phoneNumber),
         expectedDeliveryDate: Joi.date(),
+        deliveredAt: Joi.date(),
         status: Joi.string().valid(...Object.values(REDEEMGIFT_STATUS)),
     }),
 };
@@ -107,6 +108,7 @@ const updateRedeemGift = {
     body: Joi.object()
         .keys({
             expectedDeliveryDate: Joi.date(),
+            deliveredAt: Joi.date(),
             status: Joi.string().valid(...Object.values(REDEEMGIFT_STATUS)),
         })
         .min(1),
