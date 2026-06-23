@@ -12,6 +12,7 @@ const ticketPriceService = require('./ticketPrice.service');
 const seatService = require('./seat.service');
 const bookingService = require('./booking.service');
 const paymentService = require('./payment.service');
+const statisticService = require('./statistic.service');
 
 module.exports = {
     authService,
@@ -28,4 +29,5 @@ module.exports = {
     seatService,
     bookingService,
     paymentService,
+    statisticService
 };

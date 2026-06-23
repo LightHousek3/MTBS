@@ -81,9 +81,9 @@ const messages = {
     },
     //Ticket Prices
     TICKETPRICE: {
-        DUPLICATE: (resource) =>
-            `${resource} với cùng loại ghế, loại phim, loại ngày và khoảng thời gian trùng lặp đã tồn tại`,
-        TIME_RANGE: (resource) => `${resource}: Thời gian bắt đầu phải trước thời gian kết thúc`,
+        DUPLICATE: "Cấu hình giá vé với cùng loại ghế, loại phim, loại ngày và khoảng thời gian trùng lặp đã tồn tại",
+        TIME_RANGE: "Thời gian bắt đầu phải trước thời gian kết thúc",
+        NOT_FOUND: "Không tìm thấy giá vé",
     },
 
     // Booking

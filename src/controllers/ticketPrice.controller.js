@@ -11,7 +11,7 @@ const createTicketPrice = asyncHandler(async (req, res) => {
 });
 
 const getTicketPrices = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = pick(req.query, ["typeSeat", "typeMovie", "dayType"]);
   const options = pick(req.query, ["sortBy", "limit", "page"]);
   const result = await ticketPriceService.getTicketPrices(filter, options);
   ResponseHandler.paginated(res, {
