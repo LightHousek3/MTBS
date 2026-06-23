@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { Showtime, Movie, Screen, Booking, Seat, Promotion } = require('../models');
-const { VIETNAM_TIMEZONE_OFFSET_HOURS } = require('../utils');
+const { ApiError, VIETNAM_TIMEZONE_OFFSET_HOURS } = require('../utils');
 const { findTicketPrices } = require('./helpers/ticketPricing');
 
 const {

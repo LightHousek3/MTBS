@@ -72,10 +72,9 @@ const deleteTheaterById = async (id) => {
  * Get all unique locations from theaters
  */
 const getLocations = async () => {
-    const docs = await Theater.find({
-        location: { $exists: true, $ne: '' },
-    }).distinct('location');
-
+    const docs = await Theater.distinct('location', {
+        isDeleted: { $ne: true },
+    });
     return docs;
 };
 
