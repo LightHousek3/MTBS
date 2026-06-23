@@ -119,6 +119,18 @@ const messages = {
         INVALID_SIGNATURE: 'Chữ ký thanh toán không hợp lệ',
         VNPAY_URL_CREATED: 'Tạo đường dẫn thanh toán VNPay thành công',
     },
+
+    // Redeem
+    REDEEM: {
+        CANNOT_DELETE_HAS_GIFT: 'Không thể xóa quà đã có giao dịch đổi quà',
+        INVALID_AMOUNT: 'Số lượng quà đổi không hợp lệ',
+        NOT_AVAILABLE: 'Quà đổi điểm không khả dụng',
+        NOT_ENOUGH_QUANTITY: 'Số lượng quà không đủ',
+        NOT_ENOUGH_POINTS: 'Điểm tích lũy không đủ để đổi quà',
+        INVALID_STATUS_TRANSITION: 'Trạng thái giao dịch đổi quà không hợp lệ',
+        NO_VALID_FIELDS_TO_UPDATE: 'Không có trường hợp lệ để cập nhật giao dịch đổi quà',
+        CAN_ONLY_CANCEL_PENDING: 'Chỉ có thể hủy giao dịch đổi quà đang chờ xử lý',
+    },
 };
 
 module.exports = messages;
