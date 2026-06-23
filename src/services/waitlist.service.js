@@ -27,22 +27,28 @@ const ensureUpcomingMovie = async (movieId) => {
     return movie;
 };
 
+const isUpcomingMovie = (movie) => Boolean(movie?.releaseDate && new Date(movie.releaseDate) > new Date());
+
 const addMovie = async (userId, movieId) => {
-    const movie = await ensureUpcomingMovie(movieId);
+    await ensureUpcomingMovie(movieId);
 
-    const existing = await Waitlist.findOne({
-        user: userId,
-        movie: movieId,
-    }).populate(watchlistMoviePopulate);
-
-    if (existing) {
-        return existing;
-    }
-
-    const watchlistItem = await Waitlist.create({
-        user: userId,
-        movie: movieId,
-    });
+    const watchlistItem = await Waitlist.findOneAndUpdate(
+        {
+            user: userId,
+            movie: movieId,
+        },
+        {
+            $setOnInsert: {
+                user: userId,
+                movie: movieId,
+            },
+        },
+        {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true,
+        },
+    );
 
     return Waitlist.findById(watchlistItem._id).populate(watchlistMoviePopulate);
 };
@@ -93,14 +99,19 @@ const getWatchlist = async (userId, options = {}) => {
 };
 
 const getWatchlistStatus = async (userId, movieId) => {
-    const watchlistItem = await Waitlist.findOne({
-        user: userId,
-        movie: movieId,
-    }).select('_id');
+    const movie = await Movie.findById(movieId).select('releaseDate');
+    const canAddToWaitlist = isUpcomingMovie(movie);
+    const watchlistItem = userId
+        ? await Waitlist.findOne({
+              user: userId,
+              movie: movieId,
+          }).select('_id')
+        : null;
 
     return {
         movieId,
-        isSaved: Boolean(watchlistItem),
+        isSaved: canAddToWaitlist && Boolean(watchlistItem),
+        canAddToWaitlist,
     };
 };
 
