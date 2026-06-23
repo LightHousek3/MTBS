@@ -5,6 +5,7 @@ const theaterController = require('./theater.controller');
 const serviceController = require('./service.controller');
 const promotionController = require('./promotion.controller');
 const movieController = require('./movie.controller');
+const waitlistController = require('./waitlist.controller');
 const showtimeController = require('./showtime.controller');
 const screenController = require('./screen.controller');
 const redeemController = require('./redeem.controller');
@@ -23,6 +24,7 @@ module.exports = {
     serviceController,
     promotionController,
     movieController,
+    waitlistController,
     showtimeController,
     screenController,
     redeemController,
