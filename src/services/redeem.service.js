@@ -271,10 +271,21 @@ const updateRedeemGiftById = async (id, updateBody) => {
     if (Object.prototype.hasOwnProperty.call(updateBody, 'status')) {
         ensureRedeemGiftStatusTransitionAllowed(redeemGift.status, updateBody.status);
         allowedUpdateBody.status = updateBody.status;
+
+        if (updateBody.status === REDEEMGIFT_STATUS.DELIVERED) {
+            allowedUpdateBody.deliveredAt = updateBody.deliveredAt || new Date();
+        }
     }
 
     if (Object.prototype.hasOwnProperty.call(updateBody, 'expectedDeliveryDate')) {
         allowedUpdateBody.expectedDeliveryDate = updateBody.expectedDeliveryDate;
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(updateBody, 'deliveredAt') &&
+        updateBody.status !== REDEEMGIFT_STATUS.DELIVERED
+    ) {
+        allowedUpdateBody.deliveredAt = updateBody.deliveredAt;
     }
 
     if (Object.keys(allowedUpdateBody).length === 0) {
