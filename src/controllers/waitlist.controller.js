@@ -31,12 +31,7 @@ const getWatchlist = asyncHandler(async (req, res) => {
 });
 
 const getWatchlistStatus = asyncHandler(async (req, res) => {
-    const result = req.user
-        ? await waitlistService.getWatchlistStatus(req.user.id, req.params.movieId)
-        : {
-              movieId: req.params.movieId,
-              isSaved: false,
-          };
+    const result = await waitlistService.getWatchlistStatus(req.user?.id, req.params.movieId);
 
     ResponseHandler.success(res, {
         message: messages.CRUD.FETCHED('Coming soon watchlist status'),
