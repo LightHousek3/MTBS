@@ -1,89 +1,61 @@
-const Screen = require('../models/screen.model');
+const { screenService } = require('../services');
+const { asyncHandler, ResponseHandler, pick } = require('../utils');
+const { messages } = require('../constants');
 
-class ScreenController {
-    // Create a new screen
-    async createScreen(req, res) {
-        try {
-            const { name, theater } = req.body;
+const createScreen = asyncHandler(async (req, res) => {
+    const screen = await screenService.createScreen(req.body);
+    ResponseHandler.created(res, {
+        message: messages.CRUD.CREATED('Screen'),
+        data: screen,
+    });
+});
 
-            // check duplicate name
-            const existing = await Screen.findOne({ name, theater });
+const getScreenList = asyncHandler(async (req, res) => {
+    const filter = pick(req.query, ['theater', 'search']);
+    const options = pick(req.query, ['sortBy', 'limit', 'page']);
+    const result = await screenService.getScreenList(filter, options);
 
-            if (existing) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Screen name already exists',
-                });
-            }
-            const screen = new Screen(req.body);
-            const saved = await screen.save();
+    ResponseHandler.paginated(res, {
+        message: messages.CRUD.LIST_FETCHED('Screens'),
+        data: result.results,
+        meta: result.meta,
+    });
+});
 
-            res.status(201).json({
-                success: true,
-                data: saved,
-            });
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
+const getScreen = asyncHandler(async (req, res) => {
+    const screen = await screenService.getScreenById(req.params.id);
+    ResponseHandler.success(res, {
+        message: messages.CRUD.FETCHED('Screen'),
+        data: screen,
+    });
+});
+
+const updateScreen = asyncHandler(async (req, res) => {
+    const screen = await screenService.updateScreenById(req.params.id, req.body);
+    ResponseHandler.success(res, {
+        message: messages.CRUD.UPDATED('Screen'),
+        data: screen,
+    });
+});
+
+const deleteScreen = asyncHandler(async (req, res) => {
+    const status = await screenService.deleteScreenById(req.params.id);
+    if (status) {
+        ResponseHandler.success(res, {
+            message: messages.CRUD.DELETED('Screen'),
+            data: { status },
+        });
+    } else {
+        ResponseHandler.error(res, {
+            message: messages.CRUD.DELETED_FAIL('Screen'),
+        });
     }
+});
 
-    // Get list of all screens
-    async getScreenList(req, res) {
-        try {
-            const screens = await Screen.find().populate('theater');
-
-            res.json({
-                success: true,
-                data: screens,
-            });
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-    }
-
-    // Get details of a specific screen
-    async getScreenDetail(req, res) {
-        try {
-            const screen = await Screen.findById(req.params.id).populate('theater');
-
-            if (!screen) return res.status(404).json({ message: 'Screen not found' });
-
-            res.json({
-                success: true,
-                data: screen,
-            });
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-    }
-
-    // Update a screen's information
-    async updateScreen(req, res) {
-        try {
-            const screen = await Screen.findByIdAndUpdate(req.params.id, req.body, { new: true });
-
-            res.json({
-                success: true,
-                data: screen,
-            });
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-    }
-
-    // Delete a screen
-    async deleteScreen(req, res) {
-        try {
-            await Screen.findByIdAndDelete(req.params.id);
-
-            res.json({
-                success: true,
-                message: 'Screen deleted',
-            });
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-    }
-}
-
-module.exports = new ScreenController();
+module.exports = {
+    createScreen,
+    getScreenList,
+    getScreen,
+    updateScreen,
+    deleteScreen,
+};

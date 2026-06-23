@@ -1,6 +1,8 @@
 const User = require('./user.model');
 const RefreshToken = require('./refreshToken.model');
 const Banner = require('./banner.model');
+const News = require('./news.model');
+const Festival = require('./festival.model');
 const Genre = require('./genre.model');
 const Theater = require('./theater.model');
 const Service = require('./service.model');
@@ -20,6 +22,8 @@ module.exports = {
     User,
     RefreshToken,
     Banner,
+    News,
+    Festival,
     Genre,
     Theater,
     Service,

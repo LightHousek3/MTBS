@@ -1,6 +1,8 @@
 const express = require('express');
 const authRoute = require('./auth.route');
 const bannerRoute = require('./banner.route');
+const newsRoute = require('./news.route');
+const festivalRoute = require('./festival.route');
 const genreRoute = require('./genre.route');
 const theaterRoute = require('./theater.route');
 const serviceRoute = require('./service.route');
@@ -20,6 +22,8 @@ const router = express.Router();
 const routes = [
     { path: '/auth', route: authRoute },
     { path: '/banners', route: bannerRoute },
+    { path: '/news', route: newsRoute },
+    { path: '/festivals', route: festivalRoute },
     { path: '/genres', route: genreRoute },
     { path: '/theaters', route: theaterRoute },
     { path: '/services', route: serviceRoute },

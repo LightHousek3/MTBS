@@ -1,62 +1,49 @@
 const express = require('express');
-const router = express.Router();
-const screenController = require('../controllers/screen.controller');
-const { USER_ROLE } = require('../../src/constants');
-const { validate, authenticate, authorize } = require('../../src/middlewares');
-const screenValidator = require('../validators/screen.validator');
+const { screenController } = require('../controllers');
+const { authenticate, authorize, validate } = require('../middlewares');
+const { USER_ROLE } = require('../constants');
+const { screenValidator } = require('../validators');
 
-/**
- * @route   POST /api/v1/screens
- * @access  Admin
- */
-router.post(
-    '/',
-    authenticate,
-    authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.createScreen),
-    screenController.createScreen,
-);
+const router = express.Router();
 
 /**
  * @route   GET /api/v1/screens
  * @access  Public
  */
-router.get('/', screenController.getScreenList);
+router.get('/', validate(screenValidator.getScreenList), screenController.getScreenList);
 
 /**
  * @route   GET /api/v1/screens/:id
- * @access  Admin
+ * @access  Public
  */
-router.get(
-    '/:id',
+router.get('/:id', validate(screenValidator.getScreen), screenController.getScreen);
+
+// ═══════════════════════════════════════════════
+// Admin-only routes
+// ═══════════════════════════════════════════════
+
+router.post(
+    '/',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.screenId),
-    screenController.getScreenDetail,
+    validate(screenValidator.createScreen),
+    screenController.createScreen
 );
 
-/**
- * @route   PUT /api/v1/screens/:id
- * @access  Admin
- */
 router.put(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
     validate(screenValidator.updateScreen),
-    screenController.updateScreen,
+    screenController.updateScreen
 );
 
-/**
- * @route   DELETE /api/v1/screens/:id
- * @access  Admin
- */
 router.delete(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.screenId),
-    screenController.deleteScreen,
+    validate(screenValidator.deleteScreen),
+    screenController.deleteScreen
 );
 
 module.exports = router;
