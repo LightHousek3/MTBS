@@ -88,48 +88,34 @@ const bookingSchema = new mongoose.Schema(
             type: [bookingServiceSchema],
             default: [],
         },
-        totalSeat: {
-            type: Number,
-            required: true,
-            min: 1,
-        },
-        seatTotal: {
+        totalPriceMovie: {
             type: Number,
             required: true,
             min: 0,
         },
-        seatDiscount: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        seatFinalTotal: {
-            type: Number,
-            min: 0,
-        },
-        serviceTotal: {
+        totalPriceService: {
             type: Number,
             required: true,
-            default: 0,
-            min: 0,
-        },
-        serviceDiscount: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        serviceFinalTotal: {
-            type: Number,
-            min: 0,
-        },
-        promotionDiscount: {
-            type: Number,
             default: 0,
             min: 0,
         },
         totalPrice: {
             type: Number,
             required: true,
+            min: 0,
+        },
+        qrCode: {
+            type: String,
+            default: null,
+        },
+        pointsUsed: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        pointsEarned: {
+            type: Number,
+            default: 0,
             min: 0,
         },
         status: {
@@ -151,6 +137,7 @@ const bookingSchema = new mongoose.Schema(
 // ─── Indexes ─────────────────────────────────────────────
 bookingSchema.index({ user: 1, createdAt: -1 });
 bookingSchema.index({ showtime: 1, 'seats.seat': 1 });
+bookingSchema.index({ status: 1, expiresAt: 1 });
 
 // ─── Plugins ─────────────────────────────────────────────
 bookingSchema.plugin(toJSON);

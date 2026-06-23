@@ -104,6 +104,7 @@ const messages = {
         TICKET_PRICE_NOT_FOUND:
             'Không tìm thấy giá vé cho loại ghế, loại phim và lịch chiếu này. Vui lòng liên hệ hỗ trợ.',
         SERVICE_NOT_AVAILABLE: 'Một hoặc nhiều dịch vụ đã chọn không khả dụng',
+        SERVICE_INSUFFICIENT: (serviceName) => `Dịch vụ "${serviceName}" không đủ số lượng`,
         SERVICE_NOT_IN_THEATER: 'Một hoặc nhiều dịch vụ không thuộc rạp chiếu này',
         PROMOTION_NOT_APPLICABLE: 'Mã khuyến mãi không áp dụng cho đơn đặt vé này',
     },

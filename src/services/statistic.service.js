@@ -26,7 +26,7 @@ const getOverviewStats = async () => {
                     _id: null,
                     totalRevenue: { $sum: '$totalPrice' },
                     totalBookings: { $sum: 1 },
-                    totalTickets: { $sum: '$totalSeat' },
+                    totalTickets: { $sum: { $size: '$seats' } },
                     averageBookingValue: { $avg: '$totalPrice' },
                 },
             },
@@ -120,7 +120,7 @@ const getRevenueByMonth = async (year) => {
                 _id: { month: { $month: '$createdAt' } },
                 totalRevenue: { $sum: '$totalPrice' },
                 totalBookings: { $sum: 1 },
-                totalTickets: { $sum: '$totalSeat' },
+                totalTickets: { $sum: { $size: '$seats' } },
             },
         },
         {
@@ -159,7 +159,7 @@ const getRevenueByYear = async ({ fromYear, toYear } = {}) => {
                 _id: { year: { $year: '$createdAt' } },
                 totalRevenue: { $sum: '$totalPrice' },
                 totalBookings: { $sum: 1 },
-                totalTickets: { $sum: '$totalSeat' },
+                totalTickets: { $sum: { $size: '$seats' } },
             },
         },
         {
@@ -210,7 +210,7 @@ const getRevenueByTheater = async (year) => {
                 theaterName: { $first: '$theater.name' },
                 totalRevenue: { $sum: '$totalPrice' },
                 totalBookings: { $sum: 1 },
-                totalTickets: { $sum: '$totalSeat' },
+                totalTickets: { $sum: { $size: '$seats' } },
             },
         },
         {
@@ -301,7 +301,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
                     totalBookings: { $sum: 1 },
                     totalTickets: {
                         $sum: {
-                            $cond: [{ $eq: ['$status', BOOKING_STATUS.CONFIRMED] }, '$totalSeat', 0]
+                            $cond: [{ $eq: ['$status', BOOKING_STATUS.CONFIRMED] }, { $size: '$seats' }, 0]
                         }
                     },
                     confirmedCount: {
@@ -477,7 +477,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
                     $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' }
                 },
                 bookingCount: { $sum: 1 },
-                ticketsCount: { $sum: '$totalSeat' },
+                ticketsCount: { $sum: { $size: '$seats' } },
                 revenue: { $sum: '$totalPrice' }
             }
         },
@@ -539,7 +539,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
             $group: {
                 _id: '$seatDetails.type',
                 soldCount: { $sum: 1 },
-                revenue: { $sum: '$seats.price' }
+                revenue: { $sum: '$seats.finalPrice' }
             }
         },
         { $sort: { revenue: -1 } }
@@ -614,7 +614,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
         bookingCount: 0,
         ticketsCount: 0,
         revenue: 0,
-        seatTotalSum: 0,
+        ticketRevenueSum: 0,
     }));
 
     const isTimeInSlot = (timeStr, startTime, endTime) => {
@@ -636,14 +636,14 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
         const slot = slotStats.find(s => isTimeInSlot(hhmm, s.startTime, s.endTime));
         if (slot) {
             slot.bookingCount += 1;
-            slot.ticketsCount += (b.totalSeat || 0);
+            slot.ticketsCount += (b.seats?.length || 0);
             slot.revenue += (b.totalPrice || 0);
-            slot.seatTotalSum += (b.seatTotal || 0);
+            slot.ticketRevenueSum += (b.totalPriceMovie || 0);
         }
     }
 
     slotStats.forEach((r, i) => {
-        const avgPrice = r.ticketsCount > 0 ? r.seatTotalSum / r.ticketsCount : 0;
+        const avgPrice = r.ticketsCount > 0 ? r.ticketRevenueSum / r.ticketsCount : 0;
         const row = ws4.addRow([r.label, avgPrice, r.bookingCount, r.ticketsCount, r.revenue]);
         applyDataRow(row, i % 2 === 1, [null, VND_FMT, null, null, VND_FMT], ['center', 'right', 'center', 'center', 'right']);
     });
@@ -741,7 +741,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
             $group: {
                 _id: '$mv.title',
                 bookings: { $sum: 1 },
-                tickets: { $sum: '$totalSeat' },
+                tickets: { $sum: { $size: '$seats' } },
                 revenue: { $sum: '$totalPrice' }
             }
         },
@@ -796,7 +796,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
             $group: {
                 _id: '$th.name',
                 bookings: { $sum: 1 },
-                tickets: { $sum: '$totalSeat' },
+                tickets: { $sum: { $size: '$seats' } },
                 revenue: { $sum: '$totalPrice' }
             }
         },
@@ -846,7 +846,7 @@ const exportDashboard = async ({ startDate, endDate } = {}) => {
             $group: {
                 _id: '$srv.name',
                 qty: { $sum: '$services.quantity' },
-                revenue: { $sum: '$services.total' }
+                revenue: { $sum: '$services.finalTotal' }
             }
         },
         { $sort: { revenue: -1 } }

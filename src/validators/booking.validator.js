@@ -13,6 +13,7 @@ const createBooking = {
                     quantity: Joi.number().integer().min(1).required(),
                 }),
             )
+            .unique('serviceId')
             .default([]),
     }),
 };

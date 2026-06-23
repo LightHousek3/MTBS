@@ -1,8 +1,20 @@
 const { Booking, Showtime, Seat, Service, Promotion, Payment } = require('../models');
 const { ApiError } = require('../utils');
-const { messages, BOOKING_STATUS, BOOKING_HOLD_MINUTES, SHOWTIME_STATUS } = require('../constants');
+const {
+    messages,
+    BOOKING_STATUS,
+    BOOKING_HOLD_MINUTES,
+    SHOWTIME_STATUS,
+    SERVICE_STATUS,
+} = require('../constants');
 const logger = require('../config/logger');
 const { findTicketPrices } = require('./helpers/ticketPricing');
+const {
+    assertServiceStockAvailable,
+    reserveServiceQuantities,
+    refundBookingServices,
+    refundServiceReservations,
+} = require('./helpers/serviceStock');
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -28,8 +40,8 @@ const applyActivePromotion = async ({
 
     const noDiscount = {
         promotion: null,
-        seatDiscount: 0,
-        serviceDiscount: 0,
+        movieDiscount: 0,
+        concessionDiscount: 0,
         eligibleSeatTypes: [],
         eligibleServiceTypes: [],
     };
@@ -63,27 +75,27 @@ const applyActivePromotion = async ({
         return noDiscount;
     }
 
-    let seatDiscount = 0;
-    let serviceDiscount = 0;
+    let movieDiscount = 0;
+    let concessionDiscount = 0;
     if (promo.discountType === 'PERCENT') {
-        seatDiscount = Math.min(
+        movieDiscount = Math.min(
             eligibleSeatAmount,
             Math.round((eligibleSeatAmount * promo.discountValue) / 100),
         );
-        serviceDiscount = Math.min(
+        concessionDiscount = Math.min(
             eligibleServiceAmount,
             Math.round((eligibleServiceAmount * promo.discountValue) / 100),
         );
     } else {
         const discount = Math.min(promo.discountValue, eligibleAmount);
-        seatDiscount = Math.min(discount, eligibleSeatAmount);
-        serviceDiscount = Math.min(discount - seatDiscount, eligibleServiceAmount);
+        movieDiscount = Math.min(discount, eligibleSeatAmount);
+        concessionDiscount = Math.min(discount - movieDiscount, eligibleServiceAmount);
     }
 
     return {
         promotion: promo,
-        seatDiscount,
-        serviceDiscount,
+        movieDiscount,
+        concessionDiscount,
         eligibleSeatTypes,
         eligibleServiceTypes,
     };
@@ -255,7 +267,7 @@ const createBooking = async (userId, body) => {
 
     // ── 3. Calculate seat prices ──────────────────────────
     const bookedSeats = [];
-    let seatTotal = 0;
+    let movieBaseTotal = 0;
     const seatTypes = [...new Set(seats.map((seat) => seat.type))];
     const {
         dayType,
@@ -278,13 +290,14 @@ const createBooking = async (userId, body) => {
         }
 
         bookedSeats.push({ seat: seat._id, price: ticketPrice, type: seat.type });
-        seatTotal += ticketPrice;
+        movieBaseTotal += ticketPrice;
     }
 
     // ── 4. Validate services (optional) ──────────────────
     const bookedServices = [];
-    let serviceTotal = 0;
+    let serviceBaseAmount = 0;
     let services;
+    let serviceMap = new Map();
     if (serviceInputs.length > 0) {
         const serviceIds = serviceInputs.map((s) => s.serviceId);
         services = await Service.find({ _id: { $in: serviceIds } });
@@ -300,19 +313,13 @@ const createBooking = async (userId, body) => {
         }
 
         // All services must be AVAILABLE
-        const unavailableService = services.find((svc) => svc.status !== 'AVAILABLE');
+        const unavailableService = services.find((svc) => svc.status !== SERVICE_STATUS.AVAILABLE);
         if (unavailableService) {
             throw ApiError.conflict(messages.BOOKING.SERVICE_NOT_AVAILABLE);
         }
 
-        const serviceMap = new Map(services.map((s) => [String(s._id), s]));
-        const insufficientService = serviceInputs.find((input) => {
-            const service = serviceMap.get(input.serviceId);
-            return !service || service.quantity < input.quantity;
-        });
-        if (insufficientService) {
-            throw ApiError.conflict(messages.BOOKING.SERVICE_NOT_AVAILABLE);
-        }
+        serviceMap = new Map(services.map((s) => [String(s._id), s]));
+        assertServiceStockAvailable(serviceInputs, serviceMap);
 
         for (const input of serviceInputs) {
             const svc = serviceMap.get(input.serviceId);
@@ -323,7 +330,7 @@ const createBooking = async (userId, body) => {
                 unitPrice: svc.price,
                 total,
             });
-            serviceTotal += total;
+            serviceBaseAmount += total;
         }
     }
 
@@ -343,16 +350,16 @@ const createBooking = async (userId, body) => {
         service.type = source.type;
     }
 
-    const { seatDiscount, serviceDiscount, eligibleSeatTypes, eligibleServiceTypes } =
+    const { movieDiscount, concessionDiscount, eligibleSeatTypes, eligibleServiceTypes } =
         await applyActivePromotion({
-        seatAmountsByType,
-        movieType,
-        dayType,
-        serviceAmountsByType,
-    });
+            seatAmountsByType,
+            movieType,
+            dayType,
+            serviceAmountsByType,
+        });
     applyItemDiscounts({
         items: bookedSeats,
-        totalDiscount: seatDiscount,
+        totalDiscount: movieDiscount,
         isEligible: (item) => eligibleSeatTypes.includes(item.type),
         amountOf: (item) => item.price,
         setFinalAmount: (item, value) => {
@@ -362,7 +369,7 @@ const createBooking = async (userId, body) => {
     });
     applyItemDiscounts({
         items: bookedServices,
-        totalDiscount: serviceDiscount,
+        totalDiscount: concessionDiscount,
         isEligible: (item) => eligibleServiceTypes.includes(item.type),
         amountOf: (item) => item.total,
         setFinalAmount: (item, value) => {
@@ -371,31 +378,37 @@ const createBooking = async (userId, body) => {
         },
     });
 
-    const seatFinalTotal = seatTotal - seatDiscount;
-    const serviceFinalTotal = serviceTotal - serviceDiscount;
-    const promotionDiscount = seatDiscount + serviceDiscount;
-    const totalPrice = seatFinalTotal + serviceFinalTotal;
+    const totalPriceMovie = movieBaseTotal - movieDiscount;
+    const totalPriceService = serviceBaseAmount - concessionDiscount;
+    const pointsUsed = 0;
+    const totalPrice = Math.max(0, totalPriceMovie + totalPriceService - pointsUsed);
 
     // ── 6. Create booking ─────────────────────────────────
     const expiresAt = new Date(Date.now() + BOOKING_HOLD_MINUTES * 60 * 1000);
 
-    const booking = await Booking.create({
+    const bookingPayload = {
         user: userId,
         showtime: showtimeId,
         seats: bookedSeats,
         services: bookedServices,
-        totalSeat: seats.length,
-        seatTotal,
-        seatDiscount,
-        seatFinalTotal,
-        serviceTotal,
-        serviceDiscount,
-        serviceFinalTotal,
-        promotionDiscount,
+        totalPriceMovie,
+        totalPriceService,
+        pointsUsed,
+        pointsEarned: 0,
         totalPrice,
         status: BOOKING_STATUS.PENDING,
         expiresAt,
-    });
+    };
+
+    let booking;
+    let serviceReservations = [];
+    try {
+        serviceReservations = await reserveServiceQuantities(serviceInputs, serviceMap);
+        booking = await Booking.create(bookingPayload);
+    } catch (error) {
+        await refundServiceReservations(serviceReservations);
+        throw error;
+    }
 
     // Populate for response
     return Booking.findById(booking._id)
@@ -513,18 +526,31 @@ const getBookingByIdForAdmin = async (bookingId, requestingUser = null) => {
  * Cancel a booking (customer can only cancel PENDING bookings)
  */
 const cancelBooking = async (bookingId, userId) => {
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findOneAndUpdate(
+        {
+            _id: bookingId,
+            user: userId,
+            status: BOOKING_STATUS.PENDING,
+        },
+        {
+            $set: { status: BOOKING_STATUS.CANCELLED },
+            $unset: { expiresAt: '' },
+        },
+        { new: false },
+    );
 
     if (!booking) {
-        throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
-    }
-
-    if (booking.status !== BOOKING_STATUS.PENDING) {
+        const existingBooking = await Booking.findById(bookingId);
+        if (!existingBooking) {
+            throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
+        }
+        if (String(existingBooking.user) !== String(userId)) {
+            throw ApiError.forbidden(messages.BOOKING.NOT_OWNER);
+        }
         throw ApiError.badRequest(messages.BOOKING.CANNOT_CANCEL);
     }
 
-    booking.status = BOOKING_STATUS.CANCELLED;
-    await booking.save();
+    await refundBookingServices(booking);
 
     // Cancel associated pending payment (if any)
     await Payment.findOneAndUpdate(
@@ -532,6 +558,8 @@ const cancelBooking = async (bookingId, userId) => {
         { paymentStatus: 'CANCELLED' },
     );
 
+    booking.status = BOOKING_STATUS.CANCELLED;
+    booking.expiresAt = undefined;
     return booking;
 };
 
