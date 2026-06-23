@@ -25,7 +25,30 @@ router.post(
 
 router.get('/pending', authenticate, authorize(USER_ROLE.USER), bookingController.getPendingBooking);
 
-router.get('/:id', authenticate, authorize(USER_ROLE.USER), bookingController.getBookingById);
+/**
+ * @route   GET /api/v1/bookings
+ * @desc    List bookings (admin sees all; user sees own)
+ * @access  Authenticated user
+ */
+router.get(
+    '/',
+    authenticate,
+    validate(bookingValidator.getBookings),
+    bookingController.getBookings,
+);
+
+/**
+ * @route   GET /api/v1/bookings/:id
+ * @desc    Get booking detail (admin or owner)
+ * @access  Authenticated user
+ */
+router.get(
+    '/:id',
+    authenticate,
+    authorize(USER_ROLE.USER, USER_ROLE.ADMIN),
+    validate(bookingValidator.getBooking),
+    bookingController.getBooking,
+);
 
 /**
  * @route   PATCH /api/v1/bookings/:id/cancel

@@ -148,6 +148,39 @@ const buildYearDateRange = (year) => {
     };
 };
 
+const bookingPopulate = [
+    {
+        path: 'user',
+        select: 'firstName lastName email phone role',
+    },
+    {
+        path: 'showtime',
+        select: 'startTime endTime status movie screen',
+        populate: [
+            {
+                path: 'movie',
+                select: 'title type duration image',
+            },
+            {
+                path: 'screen',
+                select: 'name theater',
+                populate: {
+                    path: 'theater',
+                    select: 'name address',
+                },
+            },
+        ],
+    },
+    {
+        path: 'seats.seat',
+        select: 'seatNumber type status',
+    },
+    {
+        path: 'services.service',
+        select: 'name type price',
+    },
+];
+
 // ── Public API ────────────────────────────────────────────
 
 /**
@@ -421,6 +454,62 @@ const getPendingBooking = async (userId) =>
     );
 
 /**
+ * List bookings (admin sees all, user sees own).
+ */
+const getBookings = async (filter, options, requestingUser = null) => {
+    const queryFilter = {
+        ...buildYearDateRange(filter.year),
+    };
+
+    if (filter.status) {
+        queryFilter.status = filter.status;
+    }
+
+    if (filter.showtime) {
+        queryFilter.showtime = filter.showtime;
+    }
+
+    if (requestingUser?.role === 'ADMIN') {
+        if (filter.user) {
+            queryFilter.user = filter.user;
+        }
+    } else if (requestingUser?.id) {
+        queryFilter.user = requestingUser.id;
+    }
+
+    return Booking.paginate(queryFilter, {
+        ...options,
+        populate: options.populate || bookingPopulate,
+        sortBy: options.sortBy || 'createdAt:desc',
+    });
+};
+
+/**
+ * Get booking detail (admin or owner).
+ */
+const getBookingByIdForAdmin = async (bookingId, requestingUser = null) => {
+    const booking = await Booking.findById(bookingId).populate(bookingPopulate);
+
+    if (!booking) {
+        throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
+    }
+
+    if (
+        requestingUser &&
+        requestingUser.role !== 'ADMIN' &&
+        String(booking.user?._id || booking.user) !== String(requestingUser.id)
+    ) {
+        throw ApiError.forbidden(messages.BOOKING.NOT_OWNER);
+    }
+
+    const payments = await Payment.find({ bookingId: booking._id }).sort({ createdAt: -1 });
+    const bookingObject = booking.toObject();
+    bookingObject.payments = payments;
+
+    return bookingObject;
+};
+
+/**
  * Cancel a booking (customer can only cancel PENDING bookings)
  */
 const cancelBooking = async (bookingId, userId) => {
@@ -450,5 +539,7 @@ module.exports = {
     createBooking,
     getBookingById,
     getPendingBooking,
+    getBookings,
     cancelBooking,
+    getBookingByIdForAdmin,
 };

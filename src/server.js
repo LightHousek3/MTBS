@@ -2,12 +2,14 @@ const app = require('./app');
 const config = require('./config');
 const logger = require('./config/logger');
 const connectDB = require('./config/db');
+const { startWaitlistJob } = require('./jobs/waitlist.job');
 
 let server;
 
 const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
+    startWaitlistJob();
 
     server = app.listen(config.port, () => {
         logger.info(`
