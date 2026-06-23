@@ -1,22 +1,22 @@
 const express = require('express');
-const { screenController } = require('../controllers');
+const { newsController } = require('../controllers');
 const { authenticate, authorize, validate } = require('../middlewares');
 const { USER_ROLE } = require('../constants');
-const { screenValidator } = require('../validators');
+const { newsValidator } = require('../validators');
 
 const router = express.Router();
 
 /**
- * @route   GET /api/v1/screens
+ * @route   GET /api/v1/news
  * @access  Public
  */
-router.get('/', validate(screenValidator.getScreenList), screenController.getScreenList);
+router.get('/', validate(newsValidator.getNewsList), newsController.getNewsList);
 
 /**
- * @route   GET /api/v1/screens/:id
+ * @route   GET /api/v1/news/:id
  * @access  Public
  */
-router.get('/:id', validate(screenValidator.getScreen), screenController.getScreen);
+router.get('/:id', validate(newsValidator.getNews), newsController.getNews);
 
 // ═══════════════════════════════════════════════
 // Admin-only routes
@@ -26,24 +26,24 @@ router.post(
     '/',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.createScreen),
-    screenController.createScreen
+    validate(newsValidator.createNews),
+    newsController.createNews
 );
 
 router.put(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.updateScreen),
-    screenController.updateScreen
+    validate(newsValidator.updateNews),
+    newsController.updateNews
 );
 
 router.delete(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.deleteScreen),
-    screenController.deleteScreen
+    validate(newsValidator.deleteNews),
+    newsController.deleteNews
 );
 
 module.exports = router;

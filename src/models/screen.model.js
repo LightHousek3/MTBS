@@ -6,28 +6,31 @@ const screenSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
+      maxlength: 100
     },
 
     theater: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Theater",
-      required: true,
+      required: true
     },
 
     seatCapacity: {
       type: Number,
       required: true,
-      min: [1, "seatCapacity must be greater than 0"],
+      min: [1, "seatCapacity must be greater than 0"]
     },
 
-    status: {
-      type: String,
-      enum: ["ACTIVE", "MAINTENANCE"],
-      default: "ACTIVE",
+    createdAt: {
+      type: Date,
+      default: Date.now
     },
-  },
-  {
-    timestamps: true,
+
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
   }
 );
 
