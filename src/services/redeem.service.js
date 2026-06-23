@@ -123,7 +123,7 @@ const deleteRedeemById = async (id) => {
     const redeemGiftCount = await RedeemGift.countDocuments({ redeem: id });
 
     if (redeemGiftCount > 0) {
-        throw ApiError.conflict('Khong the xoa qua da co giao dich doi qua');
+        throw ApiError.conflict(messages.REDEEM.CANNOT_DELETE_HAS_GIFT);
     }
 
     return Redeem.softDeleteById(id);
@@ -133,7 +133,7 @@ const redeemGift = async ({ userId, redeemId, amount = 1, address = '', phone })
     const normalizedAmount = Number(amount);
 
     if (!Number.isInteger(normalizedAmount) || normalizedAmount < 1) {
-        throw ApiError.badRequest('Số lượng quà đổi không hợp lệ');
+        throw ApiError.badRequest(messages.REDEEM.INVALID_AMOUNT);
     }
 
     const [user, redeem] = await Promise.all([User.findById(userId), Redeem.findById(redeemId)]);
@@ -143,16 +143,16 @@ const redeemGift = async ({ userId, redeemId, amount = 1, address = '', phone })
     }
 
     if (!redeem || redeem.status !== REDEEM_STATUS.AVAILABLE) {
-        throw ApiError.badRequest('Quà đổi điểm không khả dụng');
+        throw ApiError.badRequest(messages.REDEEM.NOT_AVAILABLE);
     }
 
     if (redeem.quantity < normalizedAmount) {
-        throw ApiError.badRequest('Số lượng quà không đủ');
+        throw ApiError.badRequest(messages.REDEEM.NOT_ENOUGH_QUANTITY);
     }
 
     const totalPoints = redeem.pointsRequired * normalizedAmount;
     if (user.loyaltyPoints < totalPoints) {
-        throw ApiError.badRequest('Điểm tích lũy không đủ để đổi quà');
+        throw ApiError.badRequest(messages.REDEEM.NOT_ENOUGH_POINTS);
     }
 
     const balanceBefore = user.loyaltyPoints;
@@ -184,7 +184,7 @@ const redeemGift = async ({ userId, redeemId, amount = 1, address = '', phone })
         points: totalPoints,
         balanceBefore,
         balanceAfter,
-        description: `Doi ${normalizedAmount} qua "${redeem.name}" - ${transactionNo}`,
+        description: `Đổi ${normalizedAmount} quà "${redeem.name}" - ${transactionNo}`,
     });
 
     return RedeemGift.findById(gift._id).populate('user').populate('redeem');
@@ -260,7 +260,7 @@ const ensureRedeemGiftStatusTransitionAllowed = (currentStatus, nextStatus) => {
     };
 
     if (!allowedTransitions[currentStatus]?.includes(nextStatus)) {
-        throw ApiError.badRequest('Trang thai giao dich doi qua khong hop le');
+        throw ApiError.badRequest(messages.REDEEM.INVALID_STATUS_TRANSITION);
     }
 };
 
@@ -278,7 +278,7 @@ const updateRedeemGiftById = async (id, updateBody) => {
     }
 
     if (Object.keys(allowedUpdateBody).length === 0) {
-        throw ApiError.badRequest('Khong co truong hop le de cap nhat giao dich doi qua');
+        throw ApiError.badRequest(messages.REDEEM.NO_VALID_FIELDS_TO_UPDATE);
     }
 
     Object.assign(redeemGift, allowedUpdateBody);
@@ -294,7 +294,7 @@ const cancelRedeemGiftByCustomer = async (id, userId) => {
     }
 
     if (redeemGift.status !== REDEEMGIFT_STATUS.PENDING) {
-        throw ApiError.badRequest('Chi co the huy giao dich doi qua dang cho xu ly');
+        throw ApiError.badRequest(messages.REDEEM.CAN_ONLY_CANCEL_PENDING);
     }
 
     const [user, redeem, spendTransaction] = await Promise.all([
@@ -337,7 +337,7 @@ const cancelRedeemGiftByCustomer = async (id, userId) => {
         points: refundPoints,
         balanceBefore,
         balanceAfter,
-        description: `Hoan diem huy doi qua "${redeem.name}" - ${redeemGift.transactionNo}`,
+        description: `Hoàn điểm hủy đổi quà "${redeem.name}" - ${redeemGift.transactionNo}`,
     });
 
     return getRedeemGiftById(id);
