@@ -26,6 +26,34 @@ const getBookingById = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /bookings
+ * List bookings (admin sees all, user sees own).
+ */
+const getBookings = asyncHandler(async (req, res) => {
+    const filter = pick(req.query, ['status', 'user', 'showtime', 'year']);
+    const options = pick(req.query, ['sortBy', 'limit', 'page', 'select', 'populate']);
+    const result = await bookingService.getBookings(filter, options, req.user);
+
+    ResponseHandler.paginated(res, {
+        message: messages.CRUD.LIST_FETCHED('Bookings'),
+        data: result.results,
+        meta: result.meta,
+    });
+});
+
+/**
+ * GET /bookings/:id
+ * Get booking detail (admin or owner).
+ */
+const getBooking = asyncHandler(async (req, res) => {
+    const booking = await bookingService.getBookingByIdForAdmin(req.params.id, req.user);
+    ResponseHandler.success(res, {
+        message: messages.CRUD.FETCHED('Booking'),
+        data: booking,
+    });
+});
+
+/**
  * PATCH /bookings/:id/cancel
  * Cancel a PENDING_PAYMENT booking (owner only).
  */
@@ -116,6 +144,8 @@ module.exports = {
     createBooking,
     getPendingBooking,
     getBookingById,
+    getBookings,
+    getBooking,
     cancelBooking,
     getOverviewStats,
     getRevenueByGenre,

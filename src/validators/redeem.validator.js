@@ -11,11 +11,24 @@ const imageSchema = Joi.object({
 
 const createRedeem = {
     body: Joi.object().keys({
-        name: Joi.string().trim().min(1).max(255).required(),
-        description: Joi.string().trim().max(255).allow('').default(''),
-        pointsRequired: Joi.number().integer().min(0).required(),
+        name: Joi.string().trim().min(1).max(255).required().messages({
+            'any.required': 'Tên phần quà là bắt buộc',
+            'string.empty': 'Tên phần quà không được để trống',
+            'string.max': 'Tên phần quà không được vượt quá 255 ký tự',
+        }),
+        description: Joi.string().trim().max(255).allow('').default('').messages({
+            'string.max': 'Mô tả không được vượt quá 255 ký tự',
+        }),
+        pointsRequired: Joi.number().integer().min(1).required().messages({
+            'any.required': 'Điểm yêu cầu là bắt buộc',
+            'number.min': 'Điểm yêu cầu tối thiểu phải là 1',
+            'number.base': 'Điểm yêu cầu phải là số',
+        }),
         image: imageSchema.optional(),
-        quantity: Joi.number().integer().min(0).default(0),
+        quantity: Joi.number().integer().min(1).default(1).messages({
+            'number.min': 'Số lượng tối thiểu phải là 1',
+            'number.base': 'Số lượng phải là số',
+        }),
         status: Joi.string().valid(...Object.values(REDEEM_STATUS)),
     }),
 };
@@ -26,11 +39,22 @@ const updateRedeem = {
     }),
     body: Joi.object()
         .keys({
-            name: Joi.string().trim().min(1).max(255),
-            description: Joi.string().trim().max(255).allow(''),
-            pointsRequired: Joi.number().integer().min(0),
+            name: Joi.string().trim().min(1).max(255).messages({
+                'string.empty': 'Tên phần quà không được để trống',
+                'string.max': 'Tên phần quà không được vượt quá 255 ký tự',
+            }),
+            description: Joi.string().trim().max(255).allow('').messages({
+                'string.max': 'Mô tả không được vượt quá 255 ký tự',
+            }),
+            pointsRequired: Joi.number().integer().min(1).messages({
+                'number.min': 'Điểm yêu cầu tối thiểu phải là 1',
+                'number.base': 'Điểm yêu cầu phải là số',
+            }),
             image: imageSchema.optional(),
-            quantity: Joi.number().integer().min(0),
+            quantity: Joi.number().integer().min(1).messages({
+                'number.min': 'Số lượng tối thiểu phải là 1',
+                'number.base': 'Số lượng phải là số',
+            }),
             status: Joi.string().valid(...Object.values(REDEEM_STATUS)),
         })
         .min(1),
@@ -72,6 +96,7 @@ const createRedeemGift = {
         address: Joi.string().trim().max(255).allow('').default(''),
         phone: Joi.string().trim().required().custom(phoneNumber),
         expectedDeliveryDate: Joi.date(),
+        deliveredAt: Joi.date(),
         status: Joi.string().valid(...Object.values(REDEEMGIFT_STATUS)),
     }),
 };
@@ -83,6 +108,7 @@ const updateRedeemGift = {
     body: Joi.object()
         .keys({
             expectedDeliveryDate: Joi.date(),
+            deliveredAt: Joi.date(),
             status: Joi.string().valid(...Object.values(REDEEMGIFT_STATUS)),
         })
         .min(1),

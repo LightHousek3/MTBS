@@ -8,7 +8,7 @@ let server;
 const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
-
+    
     server = app.listen(config.port, () => {
         logger.info(`
     ╔═══════════════════════════════════════════════════╗

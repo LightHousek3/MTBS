@@ -10,7 +10,7 @@
 const mongoose = require('mongoose');
 const { Movie, Showtime, Genre, Booking } = require('../models');
 const { ApiError } = require('../utils');
-const { httpStatus, messages, BOOKING_STATUS } = require('../constants');
+const { messages } = require('../constants');
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -310,6 +310,11 @@ const ensureMovieDateWindowNotShrunk = async ({ movieId, releaseDate, endDate })
     }
 };
 
+/**
+ * Kiểm tra khoảng ngày chiếu của movie hợp lệ.
+ * - Chỉ validate khi có đủ cả `releaseDate` và `endDate`.
+ * - `endDate` phải lớn hơn `releaseDate`.
+ */
 const ensureMovieDateRangeValid = ({ releaseDate, endDate }) => {
     if (!releaseDate || !endDate) {
         return;
@@ -375,21 +380,19 @@ const updateMovieById = async (id, updateBody) => {
 };
 
 /**
- * Trước khi xoá movie, đảm bảo không có showtime hoặc booking đang hoạt động
- * - Nếu tồn tại showtimes, kiểm tra có booking ở trạng thái PENDING/CONFIRMED
- * - Nếu có booking active -> ném lỗi conflict (không thể xoá)
- * - Nếu chỉ có showtimes nhưng không có booking active -> ném lỗi báo movie có showtimes
+ * Trước khi xoá movie, đảm bảo movie không còn showtime hoặc booking liên quan.
+ * - Nếu có booking thuộc bất kỳ showtime nào của movie, chặn xoá với mọi trạng thái booking.
+ * - Nếu không có booking nhưng vẫn còn showtime, chặn xoá vì movie vẫn đang được lịch chiếu sử dụng.
  */
 const ensureMovieHasNoShowtimesOrBookings = async (movieId) => {
     const showtimes = await Showtime.find({ movie: movieId }).select('_id');
     if (showtimes.length > 0) {
         const showtimeIds = showtimes.map((st) => st._id);
-        const activeBookingCount = await Booking.countDocuments({
+        const bookingCount = await Booking.countDocuments({
             showtime: { $in: showtimeIds },
-            status: { $in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED] },
         });
 
-        if (activeBookingCount > 0) {
+        if (bookingCount > 0) {
             throw ApiError.conflict(messages.VALIDATION.MOVIE_HAS_ACTIVE_BOOKINGS);
         }
         throw ApiError.conflict(messages.VALIDATION.MOVIE_HAS_SHOWTIMES);
