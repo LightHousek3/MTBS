@@ -17,6 +17,7 @@ const LoyaltyTransaction = require('./loyaltyTransaction.model');
 const TicketPrice = require('./ticketPrice.model');
 const Seat = require('./seat.model');
 const Payment = require('./payment.model');
+const Waitlist = require('./waitlist.model');
 
 module.exports = {
     User,
@@ -38,4 +39,5 @@ module.exports = {
     TicketPrice,
     Seat,
     Payment,
+    Waitlist,
 };
