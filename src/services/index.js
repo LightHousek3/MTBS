@@ -5,7 +5,6 @@ const theaterService = require('./theater.service');
 const serviceService = require('./service.service');
 const promotionService = require('./promotion.service');
 const movieService = require('./movie.service');
-const waitlistService = require('./waitlist.service');
 const showtimeService = require('./showtime.service');
 const redeemService = require('./redeem.service');
 const recommendationService = require('./recommendation.service');
@@ -23,7 +22,6 @@ module.exports = {
     serviceService,
     promotionService,
     movieService,
-    waitlistService,
     showtimeService,
     redeemService,
     recommendationService,
