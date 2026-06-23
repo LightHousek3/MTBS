@@ -24,6 +24,10 @@ const bookingSeatSchema = new mongoose.Schema(
             required: true,
             min: 0,
         },
+        finalPrice: {
+            type: Number,
+            min: 0,
+        },
     },
     { _id: false },
 );
@@ -49,6 +53,10 @@ const bookingServiceSchema = new mongoose.Schema(
         total: {
             type: Number,
             required: true,
+            min: 0,
+        },
+        finalTotal: {
+            type: Number,
             min: 0,
         },
     },
@@ -90,10 +98,28 @@ const bookingSchema = new mongoose.Schema(
             required: true,
             min: 0,
         },
+        seatDiscount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        seatFinalTotal: {
+            type: Number,
+            min: 0,
+        },
         serviceTotal: {
             type: Number,
             required: true,
             default: 0,
+            min: 0,
+        },
+        serviceDiscount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        serviceFinalTotal: {
+            type: Number,
             min: 0,
         },
         promotionDiscount: {

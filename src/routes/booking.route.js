@@ -23,6 +23,10 @@ router.post(
     bookingController.createBooking,
 );
 
+router.get('/pending', authenticate, authorize(USER_ROLE.USER), bookingController.getPendingBooking);
+
+router.get('/:id', authenticate, authorize(USER_ROLE.USER), bookingController.getBookingById);
+
 /**
  * @route   PATCH /api/v1/bookings/:id/cancel
  * @desc    Cancel a PENDING booking

@@ -1,76 +1,10 @@
-const { Booking, Showtime, Seat, Service, TicketPrice, Promotion, Payment } = require('../models');
+const { Booking, Showtime, Seat, Service, Promotion, Payment } = require('../models');
 const { ApiError } = require('../utils');
 const { messages, BOOKING_STATUS, BOOKING_HOLD_MINUTES, SHOWTIME_STATUS } = require('../constants');
 const logger = require('../config/logger');
+const { findTicketPrices } = require('./helpers/ticketPricing');
 
 // ── Helpers ──────────────────────────────────────────────
-
-/**
- * Format time as "HH:MM" from a Date object (Vietnam time UTC+7)
- */
-const toVietnamHHMM = (date) => {
-    // If the date is already stored as "20:00:00.000Z" representing 20:00 local time,
-    // we should extract the hours directly without adding 7 hours to avoid shifting it.
-    const hh = String(date.getUTCHours()).padStart(2, '0');
-    const mm = String(date.getUTCMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
-};
-
-/**
- * Determine day type (WEEKDAY / WEEKEND) from a Date (Vietnam time).
- * Also checks if the date is a public holiday in Vietnam (treated as WEEKEND).
- */
-const getDayType = async (dateObj) => {
-    // Treat the stored UTC date exactly as the local date
-    const day = dateObj.getUTCDay(); // 0=Sun, 6=Sat
-
-    const isWeekend = day === 0 || day === 6;
-    if (isWeekend) return 'WEEKEND';
-
-    // Check if public holiday
-    const year = dateObj.getUTCFullYear();
-    const dateString = dateObj.toISOString().split('T')[0];
-
-    // Simple cache for holiday sets
-    global.holidayCache = global.holidayCache || {};
-
-    if (!global.holidayCache[year]) {
-        try {
-            const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/VN`;
-            const response = await fetch(url);
-            if (response.ok) {
-                const holidays = await response.json();
-                global.holidayCache[year] = holidays.map((h) => h.date);
-            } else {
-                global.holidayCache[year] = [];
-            }
-        } catch (error) {
-            logger.error('Failed to fetch public holidays', error);
-            global.holidayCache[year] = [];
-        }
-    }
-
-    const isHoliday = global.holidayCache[year].includes(dateString);
-    return isHoliday ? 'WEEKEND' : 'WEEKDAY';
-};
-
-/**
- * Find applicable ticket prices for all requested seat types in one query.
- * Time values use the zero-padded "HH:MM" format, so lexical comparison is safe.
- */
-const findTicketPrices = async ({ seatTypes, typeMovie, dayType, showtimeStartHHMM }) => {
-    const prices = await TicketPrice.find({
-        typeSeat: { $in: seatTypes },
-        typeMovie,
-        dayType,
-        startTime: { $lte: showtimeStartHHMM },
-        endTime: { $gt: showtimeStartHHMM },
-    })
-        .select('typeSeat price')
-        .lean();
-
-    return new Map(prices.map((ticketPrice) => [ticketPrice.typeSeat, ticketPrice.price]));
-};
 
 /**
  * Apply the current active promotion to the booking (if eligible).
@@ -78,12 +12,10 @@ const findTicketPrices = async ({ seatTypes, typeMovie, dayType, showtimeStartHH
  * Returns the effective discount amount.
  */
 const applyActivePromotion = async ({
-    seatTypes,
+    seatAmountsByType,
     movieType,
     dayType,
-    seatTotal,
-    serviceTypes,
-    serviceTotal,
+    serviceAmountsByType,
 }) => {
     const now = new Date();
 
@@ -94,52 +26,87 @@ const applyActivePromotion = async ({
         endDate: { $gte: now },
     });
 
-    if (!promo) return { promotion: null, discount: 0 };
+    const noDiscount = {
+        promotion: null,
+        seatDiscount: 0,
+        serviceDiscount: 0,
+        eligibleSeatTypes: [],
+        eligibleServiceTypes: [],
+    };
+    if (!promo) return noDiscount;
 
-    let eligibleAmount = 0;
-
-    // 1. Check ticket eligibility
-    let ticketEligible = false;
     const pt = promo.promotionTickets;
-    if (pt && (pt.typeSeat || pt.typeMovie || pt.dayType)) {
-        ticketEligible = true;
-        if (pt.typeSeat && pt.typeSeat.length > 0) {
-            ticketEligible = seatTypes.some((st) => pt.typeSeat.includes(st));
-        }
-        if (ticketEligible && pt.typeMovie && pt.typeMovie.length > 0) {
-            ticketEligible = pt.typeMovie.includes(movieType);
-        }
-        if (ticketEligible && pt.dayType && pt.dayType.length > 0) {
-            ticketEligible = pt.dayType.includes(dayType);
-        }
-        if (ticketEligible) eligibleAmount += seatTotal;
-    }
-
-    // 2. Check service eligibility
-    let serviceEligible = false;
-
     const ps = promo.promotionServices;
-
-    if (ps && ps.typeService?.length && serviceTypes.length) {
-        serviceEligible = serviceTypes.some((st) => ps.typeService.includes(st));
-    }
-
-    if (serviceEligible) eligibleAmount += serviceTotal;
+    const ticketContextMatches =
+        pt &&
+        (!pt.typeMovie?.length || pt.typeMovie.includes(movieType)) &&
+        (!pt.dayType?.length || pt.dayType.includes(dayType));
+    const eligibleSeatTypes = ticketContextMatches
+        ? [...seatAmountsByType.keys()].filter(
+              (type) => !pt.typeSeat?.length || pt.typeSeat.includes(type),
+          )
+        : [];
+    const eligibleServiceTypes = ps?.typeService?.length
+        ? [...serviceAmountsByType.keys()].filter((type) => ps.typeService.includes(type))
+        : [];
+    const eligibleSeatAmount = eligibleSeatTypes.reduce(
+        (total, type) => total + seatAmountsByType.get(type),
+        0,
+    );
+    const eligibleServiceAmount = eligibleServiceTypes.reduce(
+        (total, type) => total + serviceAmountsByType.get(type),
+        0,
+    );
+    const eligibleAmount = eligibleSeatAmount + eligibleServiceAmount;
 
     if (eligibleAmount === 0) {
-        return { promotion: null, discount: 0 };
+        return noDiscount;
     }
 
-    let discount = 0;
+    let seatDiscount = 0;
+    let serviceDiscount = 0;
     if (promo.discountType === 'PERCENT') {
-        discount = Math.round((eligibleAmount * promo.discountValue) / 100);
+        seatDiscount = Math.min(
+            eligibleSeatAmount,
+            Math.round((eligibleSeatAmount * promo.discountValue) / 100),
+        );
+        serviceDiscount = Math.min(
+            eligibleServiceAmount,
+            Math.round((eligibleServiceAmount * promo.discountValue) / 100),
+        );
     } else {
-        discount = promo.discountValue; // Fixed amount off the eligible total
+        const discount = Math.min(promo.discountValue, eligibleAmount);
+        seatDiscount = Math.min(discount, eligibleSeatAmount);
+        serviceDiscount = Math.min(discount - seatDiscount, eligibleServiceAmount);
     }
 
-    discount = Math.min(discount, eligibleAmount);
+    return {
+        promotion: promo,
+        seatDiscount,
+        serviceDiscount,
+        eligibleSeatTypes,
+        eligibleServiceTypes,
+    };
+};
 
-    return { promotion: promo, discount };
+const applyItemDiscounts = ({ items, totalDiscount, isEligible, amountOf, setFinalAmount }) => {
+    const eligibleItems = items.filter(isEligible);
+    const eligibleTotal = eligibleItems.reduce((total, item) => total + amountOf(item), 0);
+    let allocated = 0;
+
+    for (const item of items) {
+        if (!isEligible(item) || eligibleTotal === 0) {
+            setFinalAmount(item, amountOf(item));
+            continue;
+        }
+
+        const isLast = item === eligibleItems.at(-1);
+        const discount = isLast
+            ? totalDiscount - allocated
+            : Math.floor((totalDiscount * amountOf(item)) / eligibleTotal);
+        allocated += discount;
+        setFinalAmount(item, Math.max(0, amountOf(item) - discount));
+    }
 };
 
 /**
@@ -226,8 +193,6 @@ const createBooking = async (userId, body) => {
 
     const theaterId = showtime.screen.theater;
     const movieType = showtime.movie.type; // '2D' | '3D'
-    const dayType = await getDayType(showtime.startTime);
-    const showtimeStartHHMM = toVietnamHHMM(showtime.startTime);
 
     // ── 2. Validate seats ─────────────────────────────────
     const seats = await Seat.find({ _id: { $in: seatInputs } });
@@ -259,11 +224,14 @@ const createBooking = async (userId, body) => {
     const bookedSeats = [];
     let seatTotal = 0;
     const seatTypes = [...new Set(seats.map((seat) => seat.type))];
-    const ticketPriceBySeatType = await findTicketPrices({
-        seatTypes,
-        typeMovie: movieType,
+    const {
         dayType,
         showtimeStartHHMM,
+        priceBySeatType: ticketPriceBySeatType,
+    } = await findTicketPrices({
+        seatTypes,
+        typeMovie: movieType,
+        startTime: showtime.startTime,
     });
 
     for (const seat of seats) {
@@ -276,7 +244,7 @@ const createBooking = async (userId, body) => {
             throw ApiError.badRequest(messages.BOOKING.TICKET_PRICE_NOT_FOUND);
         }
 
-        bookedSeats.push({ seat: seat._id, price: ticketPrice });
+        bookedSeats.push({ seat: seat._id, price: ticketPrice, type: seat.type });
         seatTotal += ticketPrice;
     }
 
@@ -305,6 +273,13 @@ const createBooking = async (userId, body) => {
         }
 
         const serviceMap = new Map(services.map((s) => [String(s._id), s]));
+        const insufficientService = serviceInputs.find((input) => {
+            const service = serviceMap.get(input.serviceId);
+            return !service || service.quantity < input.quantity;
+        });
+        if (insufficientService) {
+            throw ApiError.conflict(messages.BOOKING.SERVICE_NOT_AVAILABLE);
+        }
 
         for (const input of serviceInputs) {
             const svc = serviceMap.get(input.serviceId);
@@ -320,20 +295,53 @@ const createBooking = async (userId, body) => {
     }
 
     // ── 5. Apply best promotion ───────────────────────────
-    const serviceTypes = [...new Set(services?.map((s) => s.type))];
+    const seatAmountsByType = new Map();
+    for (const seat of seats) {
+        const price = ticketPriceBySeatType.get(seat.type);
+        seatAmountsByType.set(seat.type, (seatAmountsByType.get(seat.type) || 0) + price);
+    }
+    const serviceAmountsByType = new Map();
+    for (const service of bookedServices) {
+        const source = services.find((item) => String(item._id) === String(service.service));
+        serviceAmountsByType.set(
+            source.type,
+            (serviceAmountsByType.get(source.type) || 0) + service.total,
+        );
+        service.type = source.type;
+    }
 
-    const { promotion, discount: promotionDiscount } = await applyActivePromotion({
-        seatTypes,
+    const { seatDiscount, serviceDiscount, eligibleSeatTypes, eligibleServiceTypes } =
+        await applyActivePromotion({
+        seatAmountsByType,
         movieType,
         dayType,
-        seatTotal,
-        serviceTypes,
-        serviceTotal,
+        serviceAmountsByType,
+    });
+    applyItemDiscounts({
+        items: bookedSeats,
+        totalDiscount: seatDiscount,
+        isEligible: (item) => eligibleSeatTypes.includes(item.type),
+        amountOf: (item) => item.price,
+        setFinalAmount: (item, value) => {
+            item.finalPrice = value;
+            delete item.type;
+        },
+    });
+    applyItemDiscounts({
+        items: bookedServices,
+        totalDiscount: serviceDiscount,
+        isEligible: (item) => eligibleServiceTypes.includes(item.type),
+        amountOf: (item) => item.total,
+        setFinalAmount: (item, value) => {
+            item.finalTotal = value;
+            delete item.type;
+        },
     });
 
-    // Total price is already safely adjusted based on discount amount
-    // applyActivePromotion correctly restricts discount <= eligible amount
-    const totalPrice = Math.max(0, seatTotal + serviceTotal - promotionDiscount);
+    const seatFinalTotal = seatTotal - seatDiscount;
+    const serviceFinalTotal = serviceTotal - serviceDiscount;
+    const promotionDiscount = seatDiscount + serviceDiscount;
+    const totalPrice = seatFinalTotal + serviceFinalTotal;
 
     // ── 6. Create booking ─────────────────────────────────
     const expiresAt = new Date(Date.now() + BOOKING_HOLD_MINUTES * 60 * 1000);
@@ -345,7 +353,11 @@ const createBooking = async (userId, body) => {
         services: bookedServices,
         totalSeat: seats.length,
         seatTotal,
+        seatDiscount,
+        seatFinalTotal,
         serviceTotal,
+        serviceDiscount,
+        serviceFinalTotal,
         promotionDiscount,
         totalPrice,
         status: BOOKING_STATUS.PENDING,
@@ -356,7 +368,7 @@ const createBooking = async (userId, body) => {
     return Booking.findById(booking._id)
         .populate({
             path: 'showtime',
-            select: 'startTime endTime status movie',
+            select: 'startTime endTime status movie screen',
             populate: [
                 {
                     path: 'movie',
@@ -375,6 +387,38 @@ const createBooking = async (userId, body) => {
         .populate('seats.seat', 'seatNumber type')
         .populate('services.service', 'name type price');
 };
+
+const populateBooking = (query) =>
+    query
+        .populate({
+            path: 'showtime',
+            select: 'startTime endTime status movie screen',
+            populate: [
+                { path: 'movie', select: 'title type duration image ageRating' },
+                {
+                    path: 'screen',
+                    select: 'name theater',
+                    populate: { path: 'theater', select: 'name address location' },
+                },
+            ],
+        })
+        .populate('seats.seat', 'seatNumber type')
+        .populate('services.service', 'name type price imageUrl');
+
+const getBookingById = async (bookingId, userId) => {
+    const booking = await populateBooking(Booking.findOne({ _id: bookingId, user: userId }));
+    if (!booking) throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
+    return booking;
+};
+
+const getPendingBooking = async (userId) =>
+    populateBooking(
+        Booking.findOne({
+            user: userId,
+            status: BOOKING_STATUS.PENDING,
+            expiresAt: { $gt: new Date() },
+        }).sort({ createdAt: -1 }),
+    );
 
 /**
  * Cancel a booking (customer can only cancel PENDING bookings)
@@ -404,5 +448,7 @@ const cancelBooking = async (bookingId, userId) => {
 
 module.exports = {
     createBooking,
+    getBookingById,
+    getPendingBooking,
     cancelBooking,
 };

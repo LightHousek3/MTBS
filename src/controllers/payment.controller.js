@@ -18,6 +18,7 @@ const initiateVnpay = asyncHandler(async (req, res) => {
         bookingId: req.body.bookingId,
         userId: req.user.id,
         clientIp,
+        appReturnUrl: req.body.appReturnUrl,
     });
 
     ResponseHandler.created(res, {
@@ -48,59 +49,21 @@ const vnpayReturn = asyncHandler(async (req, res) => {
 
     const appReturnUrl = req.query.appReturnUrl;
     if (appReturnUrl) {
-        const rawBookingId = result?.data?.bookingId;
-        const bookingId =
-            typeof rawBookingId === 'object' ? rawBookingId?._id || rawBookingId?.id : rawBookingId;
+        const bookingId = result?.data?.bookingId;
 
-        const isSafeAppUrl = /^(filmgo|exp):\/\//i.test(appReturnUrl);
-        const baseAppUrl = isSafeAppUrl ? appReturnUrl : 'filmgo://payment-result';
-        const separator = baseAppUrl.includes('?') ? '&' : '?';
+        const isSafeAppUrl = /^mtbs:\/\/\/payment-result(?:[?#]|$)/i.test(appReturnUrl);
+        const deepLink = new URL(isSafeAppUrl ? appReturnUrl : 'mtbs:///payment-result');
 
-        // const redirectParams = new URLSearchParams({
-        //     success: String(result.success),
-        //     status: result.success ? 'success' : 'failed',
-        // });
+        deepLink.searchParams.set('success', String(result.success));
+        deepLink.searchParams.set('status', result.success ? 'success' : 'failed');
 
         if (bookingId) {
-            redirectParams.set('bookingId', String(bookingId));
+            deepLink.searchParams.set('bookingId', String(bookingId));
         }
 
-        // if (result.message) {
-        //     redirectParams.set('message', result.message);
-        // }
+        if (result.message) deepLink.searchParams.set('message', result.message);
 
-        const deepLink = `${baseAppUrl}${separator}${redirectParams.toString()}`;
-        const escapedDeepLink = String(deepLink).replace(/"/g, '&quot;');
-        const scriptSafeDeepLink = JSON.stringify(String(deepLink));
-
-        return res.status(200).send(`<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FilmGo Payment Return</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 24px; color: #222; }
-        .box { max-width: 480px; margin: 48px auto; border: 1px solid #ddd; border-radius: 12px; padding: 20px; }
-        .btn { display: inline-block; margin-top: 12px; background: #e94560; color: #fff; text-decoration: none; padding: 10px 14px; border-radius: 8px; }
-        .hint { color: #666; font-size: 13px; margin-top: 12px; }
-    </style>
-</head>
-<body>
-    <div class="box">
-        <h2>Đang quay lại ứng dụng FilmGo...</h2>
-        <p>Nếu ứng dụng không tự mở, vui lòng bấm nút bên dưới.</p>
-        <a class="btn" href="${escapedDeepLink}">Mở ứng dụng FilmGo</a>
-    </div>
-    <script>
-        var deepLink = ${scriptSafeDeepLink};
-        window.location.replace(deepLink);
-        setTimeout(function () {
-            window.location.href = deepLink;
-        }, 300);
-    </script>
-</body>
-</html>`);
+        return res.redirect(302, deepLink.toString());
     }
 
     ResponseHandler.success(res, {

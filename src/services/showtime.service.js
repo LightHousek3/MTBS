@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
-const { Showtime, Movie, Screen, Booking, Seat, TicketPrice, Promotion } = require('../models');
-const { ApiError } = require('../utils');
+const { Showtime, Movie, Screen, Booking, Seat, Promotion } = require('../models');
+const { VIETNAM_TIMEZONE_OFFSET_HOURS } = require('../utils');
+const { findTicketPrices } = require('./helpers/ticketPricing');
+
 const {
     messages,
     SHOWTIME_BUFFER_MINUTES,
     SHOWTIME_STATUS,
     BOOKING_STATUS,
 } = require('../constants');
-
-const VIETNAM_TIMEZONE_OFFSET_HOURS = 7;
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -599,6 +599,60 @@ const deleteShowtimeById = async (id) => {
     return showtime;
 };
 
+const extractBookedSeatIds = (bookings) => {
+    const bookedSeatIds = new Set();
+
+    for (const booking of bookings) {
+        for (const seatBooking of booking.seats || []) {
+            bookedSeatIds.add(String(seatBooking.seat));
+        }
+    }
+
+    return bookedSeatIds;
+};
+
+const calculateSeatPrice = ({ seatType, movieType, dayType, basePrice, promotion }) => {
+    if (!promotion || basePrice <= 0) {
+        return {
+            finalPrice: basePrice,
+            discount: 0,
+            promotionEligible: false,
+        };
+    }
+
+    const pt = promotion.promotionTickets || {};
+
+    const matchesSeat = !pt.typeSeat?.length || pt.typeSeat.includes(seatType);
+
+    const matchesMovie = !pt.typeMovie?.length || pt.typeMovie.includes(movieType);
+
+    const matchesDay = !pt.dayType?.length || pt.dayType.includes(dayType);
+
+    const isEligible = matchesSeat && matchesMovie && matchesDay;
+
+    if (!isEligible) {
+        return {
+            finalPrice: basePrice,
+            discount: 0,
+            promotionEligible: false,
+        };
+    }
+
+    let discount = 0;
+
+    if (promotion.discountType === 'PERCENT') {
+        discount = Math.round((basePrice * promotion.discountValue) / 100);
+    }
+
+    discount = Math.min(discount, basePrice);
+
+    return {
+        discount,
+        finalPrice: basePrice - discount,
+        promotionEligible: true,
+    };
+};
+
 const getShowtimeSeating = async (id) => {
     const showtime = await Showtime.findById(id)
         .populate({
@@ -614,99 +668,61 @@ const getShowtimeSeating = async (id) => {
 
     const { screen, movie, startTime } = showtime;
 
-    // Determine showtime properties for pricing
-    const showtimeDate = new Date(startTime);
-    const dayOfWeek = showtimeDate.getDay();
-    // Weekend is Saturday (6) and Sunday (0)
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const dayType = isWeekend ? 'WEEKEND' : 'WEEKDAY';
-
-    // Format "HH:mm" for comparing with TicketPrice ranges
-    const hours = showtimeDate.getUTCHours().toString().padStart(2, '0');
-    const minutes = showtimeDate.getUTCMinutes().toString().padStart(2, '0');
-    const hhmm = `${hours}:${minutes}`;
-
-    // Use raw mongoose methods for queries that might be affected by Lean
-    const [seats, bookings, ticketPrices, activePromotions] = await Promise.all([
+    const now = new Date();
+    const [seats, bookings, promotion] = await Promise.all([
         Seat.find({ screenId: screen._id }).lean(),
         Booking.find({
             showtime: id,
-            status: { $in: [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED] },
-        }).lean(),
-        TicketPrice.find({
-            typeMovie: movie.type,
-            dayType: dayType,
-            startTime: { $lte: hhmm },
-            endTime: { $gt: hhmm },
-        }).lean(),
-        // Find active promotion directly intersecting with the showtime
-        Promotion.find({
-            startDate: { $lte: showtimeDate },
-            endDate: { $gte: showtimeDate },
-            status: { $in: ['ACTIVE', 'UPCOMING'] }, // Sometimes cron hasn't hit yet, but dates are valid
+            $or: [
+                { status: BOOKING_STATUS.CONFIRMED },
+                { status: BOOKING_STATUS.PENDING, expiresAt: { $gt: now } },
+            ],
+        })
+            .select('seats')
+            .lean(),
+        Promotion.findOne({
+            startDate: { $lte: now },
+            endDate: { $gte: now },
+            status: 'ACTIVE',
         }).lean(),
     ]);
 
-    // A valid promotion is one that matches the dates
-    const activePromotion = activePromotions.find(
-        (p) => new Date(p.startDate) <= showtimeDate && new Date(p.endDate) >= showtimeDate,
-    );
-
-    // Map ticket prices by seat type
-
-    const priceMap = {};
-    for (const tp of ticketPrices) {
-        priceMap[tp.typeSeat] = tp.price;
+    const seatTypes = [...new Set(seats.map((seat) => seat.type))];
+    const { dayType, priceBySeatType } = await findTicketPrices({
+        seatTypes,
+        typeMovie: movie.type,
+        startTime: startTime,
+    });
+    const missingPriceType = seatTypes.find((seatType) => !priceBySeatType.has(seatType));
+    if (missingPriceType) {
+        throw ApiError.badRequest(messages.BOOKING.TICKET_PRICE_NOT_FOUND);
     }
 
-    // Gather booked seat IDs
-    const bookedSeatIds = new Set();
-    for (const b of bookings) {
-        if (b.seats && b.seats.length > 0) {
-            for (const bs of b.seats) {
-                bookedSeatIds.add(bs.seat.toString());
-            }
-        }
-    }
+    const bookedSeatIds = extractBookedSeatIds(bookings);
 
     const structuredSeats = seats.map((seat) => {
-        const isBooked = bookedSeatIds.has(seat._id.toString());
-        const basePrice = priceMap[seat.type] || 0;
+        const basePrice = priceBySeatType.get(seat.type) ?? 0;
 
-        let finalPrice = basePrice;
-        let appliedDiscount = 0;
-
-        if (activePromotion && basePrice > 0) {
-            const promoTickets = activePromotion.promotionTickets || {};
-            const matchesSeat =
-                !promoTickets.typeSeat?.length || promoTickets.typeSeat.includes(seat.type);
-            const matchesMovie =
-                !promoTickets.typeMovie?.length || promoTickets.typeMovie.includes(movie.type);
-            const matchesDay =
-                !promoTickets.dayType?.length || promoTickets.dayType.includes(dayType);
-
-            if (matchesSeat && matchesMovie && matchesDay) {
-                if (activePromotion.discountType === 'PERCENT') {
-                    appliedDiscount = (basePrice * activePromotion.discountValue) / 100;
-                } else if (activePromotion.discountType === 'AMOUNT') {
-                    appliedDiscount = activePromotion.discountValue;
-                }
-
-                finalPrice = Math.max(0, basePrice - appliedDiscount);
-            }
-        }
-
-        // Determine return status: if the physical seat is available but booked, it's unavailable for this showtime
-        const seatStatus = isBooked || seat.status === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'AVAILABLE';
+        const { finalPrice, discount, promotionEligible } = calculateSeatPrice({
+            seatType: seat.type,
+            movieType: movie.type,
+            dayType,
+            basePrice,
+            promotion,
+        });
 
         return {
             _id: seat._id,
             seatNumber: seat.seatNumber,
             type: seat.type,
-            status: seatStatus,
+            status:
+                bookedSeatIds.has(String(seat._id)) || seat.status === 'UNAVAILABLE'
+                    ? 'UNAVAILABLE'
+                    : 'AVAILABLE',
             basePrice,
             price: finalPrice,
-            discount: appliedDiscount,
+            discount,
+            promotionEligible,
         };
     });
 
@@ -714,37 +730,30 @@ const getShowtimeSeating = async (id) => {
         showtime: {
             _id: showtime._id,
             startTime: showtime.startTime,
-            endTime: showtime.endTime,
-            status: showtime.status,
         },
         movie: {
             _id: movie._id,
             title: movie.title,
             type: movie.type,
             image: movie.image,
-            ageRating: movie.ageRating,
-            duration: movie.duration,
         },
         theater: screen.theater
             ? {
                   _id: screen.theater._id,
                   name: screen.theater.name,
-                  location: screen.theater.location,
                   address: screen.theater.address,
               }
             : null,
         screen: {
             _id: screen._id,
             name: screen.name,
-            seatCapacity: screen.seatCapacity,
         },
         seats: structuredSeats,
-        promotion: activePromotion
+        promotion: promotion
             ? {
-                  _id: activePromotion._id,
-                  title: activePromotion.title,
-                  discountType: activePromotion.discountType,
-                  discountValue: activePromotion.discountValue,
+                  id: String(promotion._id),
+                  discountType: promotion.discountType,
+                  discountValue: promotion.discountValue,
               }
             : null,
     };

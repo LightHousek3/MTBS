@@ -46,10 +46,14 @@ const verifyVnpaySignature = (params) => {
     const receivedHash = params['vnp_SecureHash'];
     if (!receivedHash) return false;
 
-    // Remove hash fields before verification
-    const signParams = { ...params };
-    delete signParams['vnp_SecureHash'];
-    delete signParams['vnp_SecureHashType'];
+    // VNPay signs only its own vnp_* fields. Internal return URL query params
+    // (for example appReturnUrl) must never participate in checksum validation.
+    const signParams = Object.fromEntries(
+        Object.entries(params).filter(
+            ([key]) =>
+                key.startsWith('vnp_') && key !== 'vnp_SecureHash' && key !== 'vnp_SecureHashType',
+        ),
+    );
 
     const signData = buildSortedQueryString(signParams);
     const expectedHash = computeHmacSha512(config.vnpay.hashSecret, signData);
@@ -67,8 +71,8 @@ const verifyVnpaySignature = (params) => {
  * @param {string} clientIp    - Client's real IP address
  * @returns { paymentUrl }
  */
-const createVnpayPayment = async ({ bookingId, userId, clientIp }) => {
-    const booking = await Booking.findById(bookingId);
+const createVnpayPayment = async ({ bookingId, userId, clientIp, appReturnUrl }) => {
+    const booking = await Booking.findOne({ _id: bookingId, user: userId });
 
     if (!booking) {
         throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
@@ -119,7 +123,9 @@ const createVnpayPayment = async ({ bookingId, userId, clientIp }) => {
         vnp_Locale: 'vn',
         vnp_OrderInfo: `Thanh toan ve phim ${vnpTxnRef}`,
         vnp_OrderType: 'billpayment',
-        vnp_ReturnUrl: config.vnpay.returnUrl,
+        vnp_ReturnUrl: appReturnUrl
+            ? `${config.vnpay.returnUrl}${config.vnpay.returnUrl.includes('?') ? '&' : '?'}appReturnUrl=${encodeURIComponent(appReturnUrl)}`
+            : config.vnpay.returnUrl,
         vnp_TxnRef: vnpTxnRef,
         vnp_ExpireDate: expireDate,
     };
@@ -230,7 +236,7 @@ const handleVnpayReturn = async (returnParams) => {
     const vnpResponseCode = returnParams['vnp_ResponseCode'];
     const vnpTxnRef = returnParams['vnp_TxnRef'];
 
-    const payment = await Payment.findOne({ _id: vnpTxnRef }).populate('bookingId');
+    const payment = await Payment.findOne({ _id: vnpTxnRef });
 
     if (!payment) {
         return { success: false, message: messages.PAYMENT.NOT_FOUND, data: null };

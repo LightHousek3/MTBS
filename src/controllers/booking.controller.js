@@ -14,6 +14,16 @@ const createBooking = asyncHandler(async (req, res) => {
     });
 });
 
+const getPendingBooking = asyncHandler(async (req, res) => {
+    const booking = await bookingService.getPendingBooking(req.user.id);
+    ResponseHandler.success(res, { data: booking });
+});
+
+const getBookingById = asyncHandler(async (req, res) => {
+    const booking = await bookingService.getBookingById(req.params.id, req.user.id);
+    ResponseHandler.success(res, { data: booking });
+});
+
 /**
  * PATCH /bookings/:id/cancel
  * Cancel a PENDING_PAYMENT booking (owner only).
@@ -28,5 +38,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
 module.exports = {
     createBooking,
+    getPendingBooking,
+    getBookingById,
     cancelBooking,
 };

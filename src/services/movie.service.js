@@ -115,6 +115,7 @@ const getMovies = async (filter, options) => {
   if (filter.location) {
     const location = filter.location.trim().normalize("NFC");
     delete filter.location; // Remove location from filter object
+    filter.isDeleted = { $ne: true };
 
     // Use aggregation to join with Showtime, Screen, and Theater
     const aggregationPipeline = [
@@ -124,8 +125,15 @@ const getMovies = async (filter, options) => {
       {
         $lookup: {
           from: "showtimes",
-          localField: "_id",
-          foreignField: "movie",
+          let: { movieId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$movie", "$$movieId"] },
+                isDeleted: { $ne: true },
+              },
+            },
+          ],
           as: "showtimes",
         },
       },
@@ -144,6 +152,7 @@ const getMovies = async (filter, options) => {
       {
         $unwind: "$screen",
       },
+      { $match: { "screen.isDeleted": { $ne: true } } },
       // Join Theater through Screen
       {
         $lookup: {
@@ -156,6 +165,7 @@ const getMovies = async (filter, options) => {
       {
         $unwind: "$theater",
       },
+      { $match: { "theater.isDeleted": { $ne: true } } },
       // Match by location
       {
         $match: {
@@ -179,6 +189,8 @@ const getMovies = async (filter, options) => {
           endDate: { $first: "$endDate" },
           ageRating: { $first: "$ageRating" },
           actors: { $first: "$actors" },
+          totalBookings: { $first: "$totalBookings" },
+          ratingAverage: { $first: "$ratingAverage" },
           createdAt: { $first: "$createdAt" },
           updatedAt: { $first: "$updatedAt" },
         },
@@ -209,6 +221,11 @@ const getMovies = async (filter, options) => {
         });
       }
     }
+
+    aggregationPipeline.push(
+      { $addFields: { id: { $toString: "$_id" } } },
+      { $project: { _id: 0 } },
+    );
 
     const result = await Movie.aggregate(aggregationPipeline).collation({
       locale: "vi",
