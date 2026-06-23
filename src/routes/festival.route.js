@@ -1,22 +1,22 @@
 const express = require('express');
-const { screenController } = require('../controllers');
+const { festivalController } = require('../controllers');
 const { authenticate, authorize, validate } = require('../middlewares');
 const { USER_ROLE } = require('../constants');
-const { screenValidator } = require('../validators');
+const { festivalValidator } = require('../validators');
 
 const router = express.Router();
 
 /**
- * @route   GET /api/v1/screens
+ * @route   GET /api/v1/festivals
  * @access  Public
  */
-router.get('/', validate(screenValidator.getScreenList), screenController.getScreenList);
+router.get('/', validate(festivalValidator.getFestivalList), festivalController.getFestivalList);
 
 /**
- * @route   GET /api/v1/screens/:id
+ * @route   GET /api/v1/festivals/:id
  * @access  Public
  */
-router.get('/:id', validate(screenValidator.getScreen), screenController.getScreen);
+router.get('/:id', validate(festivalValidator.getFestival), festivalController.getFestival);
 
 // ═══════════════════════════════════════════════
 // Admin-only routes
@@ -26,24 +26,24 @@ router.post(
     '/',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.createScreen),
-    screenController.createScreen
+    validate(festivalValidator.createFestival),
+    festivalController.createFestival
 );
 
 router.put(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.updateScreen),
-    screenController.updateScreen
+    validate(festivalValidator.updateFestival),
+    festivalController.updateFestival
 );
 
 router.delete(
     '/:id',
     authenticate,
     authorize(USER_ROLE.ADMIN),
-    validate(screenValidator.deleteScreen),
-    screenController.deleteScreen
+    validate(festivalValidator.deleteFestival),
+    festivalController.deleteFestival
 );
 
 module.exports = router;

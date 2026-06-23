@@ -44,11 +44,20 @@ const createScreen = {
 
 // Update Screen
 const updateScreen = {
+    params: Joi.object({
+        id: Joi.string()
+            .custom(objectId)
+            .required()
+    }),
     body: Joi.object({
         name: Joi.string()
             .trim()
             .min(2)
-            .max(100),
+            .max(100)
+            .messages({
+                "string.min": "Screen name must be at least 2 characters",
+                "string.max": "Screen name must be at most 100 characters"
+            }),
 
         theater: Joi.string()
             .custom(objectId),
@@ -56,11 +65,35 @@ const updateScreen = {
         seatCapacity: Joi.number()
             .integer()
             .min(1)
+            .messages({
+                "number.base": "Seat capacity must be a number",
+                "number.min": "Seat capacity must be greater than 0"
+            })
+    }).min(1)
+};
+
+// Get Screen
+const getScreen = {
+    params: Joi.object({
+        id: Joi.string()
+            .custom(objectId)
+            .required()
     })
 };
 
-// Validate Screen ID
-const screenId = {
+// Get Screen List
+const getScreenList = {
+    query: Joi.object().keys({
+        theater: Joi.string().custom(objectId).optional(),
+        search: Joi.string().optional().trim(),
+        sortBy: Joi.string().optional().trim(),
+        limit: Joi.number().integer().min(1).optional(),
+        page: Joi.number().integer().min(1).optional(),
+    }),
+};
+
+// Delete Screen
+const deleteScreen = {
     params: Joi.object({
         id: Joi.string()
             .custom(objectId)
@@ -71,5 +104,7 @@ const screenId = {
 module.exports = {
     createScreen,
     updateScreen,
-    screenId
+    getScreen,
+    getScreenList,
+    deleteScreen
 };
