@@ -3,7 +3,6 @@ const theaterValidator = require('./theater.validator');
 const serviceValidator = require('./service.validator');
 const promotionValidator = require('./promotion.validator');
 const movieValidator = require('./movie.validator');
-const waitlistValidator = require('./waitlist.validator');
 const showtimeValidator = require('./showtime.validator');
 const screenValidator = require('./screen.validator');
 const redeemValidator = require('./redeem.validator');
@@ -20,7 +19,6 @@ module.exports = {
     serviceValidator,
     promotionValidator,
     movieValidator,
-    waitlistValidator,
     showtimeValidator,
     screenValidator,
     redeemValidator,
