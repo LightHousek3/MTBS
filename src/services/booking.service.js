@@ -380,6 +380,7 @@ const createBooking = async (userId, body) => {
 
     const totalPriceMovie = movieBaseTotal - movieDiscount;
     const totalPriceService = serviceBaseAmount - concessionDiscount;
+    const promotionDiscount = movieDiscount + concessionDiscount;
     const pointsUsed = 0;
     const totalPrice = Math.max(0, totalPriceMovie + totalPriceService - pointsUsed);
 
@@ -393,6 +394,7 @@ const createBooking = async (userId, body) => {
         services: bookedServices,
         totalPriceMovie,
         totalPriceService,
+        promotionDiscount,
         pointsUsed,
         pointsEarned: 0,
         totalPrice,

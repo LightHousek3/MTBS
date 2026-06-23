@@ -104,6 +104,11 @@ const bookingSchema = new mongoose.Schema(
             required: true,
             min: 0,
         },
+        promotionDiscount: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
         qrCode: {
             type: String,
             default: null,
