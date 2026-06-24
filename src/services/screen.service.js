@@ -16,7 +16,7 @@ const createScreen = async (body) => {
     return Screen.create(body);
 };
 
-const getScreenList = async (filter, options) => {
+const getScreenList = async (filter, options = {}) => {
     const queryFilter = {};
 
     // Filter by theater
@@ -29,7 +29,10 @@ const getScreenList = async (filter, options) => {
         queryFilter.name = { $regex: filter.search, $options: 'i' };
     }
 
-    return Screen.paginate(queryFilter, options);
+    return Screen.paginate(queryFilter, {
+        ...options,
+        populate: options.populate || 'theater:name-address',
+    });
 };
 
 const getScreenById = async (id) => {
