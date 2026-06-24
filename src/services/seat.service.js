@@ -29,9 +29,12 @@ const createSeat = async (body) => {
   }
 };
 
-const getSeats = async (filter, options) => {
+const getSeats = async (filter, options = {}) => {
   try {
-    return Seat.paginate(filter, options);
+    return Seat.paginate(filter, {
+      ...options,
+      populate: options.populate || "screenId:name-theater-seatCapacity.theater:name-address",
+    });
   } catch (error) {
     logger.error("GET_SEATS_ERROR", error);
     throw error;
@@ -39,7 +42,14 @@ const getSeats = async (filter, options) => {
 };
 
 const getSeatById = async (id) => {
-  const seat = await Seat.findById(id);
+  const seat = await Seat.findById(id).populate({
+    path: "screenId",
+    select: "name theater seatCapacity",
+    populate: {
+      path: "theater",
+      select: "name address",
+    },
+  });
 
   if (!seat) {
     throw ApiError.notFound(messages.CRUD.NOT_FOUND("Seat"));
@@ -86,7 +96,7 @@ const updateSeatById = async (seatId, updateBody) => {
     // If changing seatNumber, ensure uniqueness within the same screen
     if (updateBody.seatNumber && updateBody.seatNumber !== seat.seatNumber) {
       const existing = await Seat.findOne({
-        screenId: seat.screenId,
+        screenId: seat.screenId?._id || seat.screenId,
         seatNumber: updateBody.seatNumber,
       });
 

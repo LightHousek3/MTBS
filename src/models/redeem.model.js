@@ -28,7 +28,7 @@ const redeemSchema = new mongoose.Schema(
     },
     quantity: {
       type: Number,
-      min: 1,
+      min: 0,
     },
     status: {
       type: String,
