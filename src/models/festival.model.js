@@ -14,7 +14,7 @@ const festivalSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 255
+      maxlength: 2048
     },
 
     content: {
@@ -47,5 +47,30 @@ const festivalSchema = new mongoose.Schema(
 festivalSchema.plugin(toJSON);
 festivalSchema.plugin(paginate);
 festivalSchema.plugin(softDelete);
+
+const dropLegacyTitleIndex = async () => {
+  if (!mongoose.connection.db) return;
+
+  try {
+    const indexes = await mongoose.connection.db.collection('festivals').indexes();
+    const hasLegacyTitleIndex = indexes.some((index) => index.name === 'title_1');
+
+    if (hasLegacyTitleIndex) {
+      await mongoose.connection.db.collection('festivals').dropIndex('title_1');
+    }
+  } catch (error) {
+    if (error?.code !== 26) {
+      console.warn('Unable to drop legacy festivals title index:', error.message);
+    }
+  }
+};
+
+if (mongoose.connection.readyState === 1) {
+  dropLegacyTitleIndex();
+} else {
+  mongoose.connection.once('open', () => {
+    dropLegacyTitleIndex();
+  });
+}
 
 module.exports = mongoose.model("Festival", festivalSchema);
