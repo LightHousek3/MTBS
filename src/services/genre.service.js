@@ -1,4 +1,4 @@
-const { Genre } = require('../models');
+const { Genre, Movie } = require('../models');
 const { ApiError } = require('../utils');
 const { httpStatus, messages } = require('../constants');
 
@@ -39,8 +39,14 @@ const updateGenreById = async (id, updateBody) => {
 };
 
 const deleteGenreById = async (id) => {
-    const status = await Genre.softDeleteById(id);
-    return status;
+    await getGenreById(id);
+
+    const movieUsingGenre = await Movie.findOne({ genres: id }).select('_id');
+    if (movieUsingGenre) {
+        throw ApiError.conflict(messages.GENRE.IN_USE_BY_MOVIE);
+    }
+
+    return Genre.softDeleteById(id);
 };
 
 module.exports = {

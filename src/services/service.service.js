@@ -1,4 +1,4 @@
-const { Service, Theater } = require('../models');
+const { Booking, Service, Theater } = require('../models');
 const { ApiError } = require('../utils');
 const { messages, SERVICE_STATUS } = require('../constants');
 
@@ -58,7 +58,7 @@ const getServices = async (filter, options) => {
  * Get service by ID
  */
 const getServiceById = async (id) => {
-    const service = await Service.findById(id).populate('theater', 'name');
+    const service = await Service.findById(id).populate('theater', 'name address');
     if (!service) {
         throw ApiError.notFound(messages.CRUD.NOT_FOUND('Service'));
     }
@@ -105,8 +105,14 @@ const updateServiceStatus = async (id, status) => {
  */
 const deleteServiceById = async (id) => {
     const service = await getServiceById(id);
+    const existingBooking = await Booking.findOne({ 'services.service': id }).select('_id');
+
+    if (existingBooking) {
+        throw ApiError.conflict(messages.SERVICE.HAS_BOOKINGS);
+    }
+
     await service.softDelete();
-    return service;
+    return true;
 };
 
 module.exports = {

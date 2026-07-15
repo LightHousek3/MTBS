@@ -78,6 +78,18 @@ const messages = {
             'Không thể xác định tọa độ cho địa chỉ đã cung cấp. Vui lòng thử một địa chỉ cụ thể hơn.',
         GEOCODE_SERVICE_ERROR:
             'Dịch vụ phân định vị trí tạm thời không khả dụng. Vui lòng thử lại sau.',
+        HAS_BOOKINGS: 'Không thể xóa rạp vì rạp này đã có booking',
+    },
+
+    // Genre
+    GENRE: {
+        IN_USE_BY_MOVIE: 'Không thể xóa thể loại vì đang được sử dụng trong phim',
+    },
+
+    // Service
+    SERVICE: {
+        NAME_THEATER_EXISTS: 'Dịch vụ với tên này đã tồn tại trong rạp',
+        HAS_BOOKINGS: 'Không thể xóa dịch vụ vì dịch vụ này đã có booking',
     },
     //Ticket Prices
     TICKETPRICE: {

@@ -1,4 +1,4 @@
-const { Theater } = require('../models');
+const { Booking, Screen, Seat, Service, Showtime, Theater } = require('../models');
 const { ApiError } = require('../utils');
 const { httpStatus, messages } = require('../constants');
 const { geocodeAddress } = require('./geocode.service');
@@ -64,8 +64,55 @@ const updateTheaterById = async (id, updateBody) => {
  * Soft delete theater
  */
 const deleteTheaterById = async (id) => {
-    const status = await Theater.softDeleteById(id);
-    return status;
+    const theater = await getTheaterById(id);
+    const screens = await Screen.find({ theater: id }).select('_id').lean();
+    const screenIds = screens.map((screen) => screen._id);
+
+    const showtimes = screenIds.length
+        ? await Showtime.find({ screen: { $in: screenIds } })
+              .select('_id')
+              .lean()
+        : [];
+    const showtimeIds = showtimes.map((showtime) => showtime._id);
+
+    if (showtimeIds.length) {
+        const existingBooking = await Booking.findOne({
+            showtime: { $in: showtimeIds },
+        }).select('_id');
+
+        if (existingBooking) {
+            throw ApiError.conflict(messages.THEATER.HAS_BOOKINGS);
+        }
+    }
+
+    const now = new Date();
+    await Promise.all([
+        Service.updateMany(
+            { theater: id, isDeleted: { $ne: true } },
+            { isDeleted: true, deletedAt: now },
+        ),
+        screenIds.length
+            ? Showtime.updateMany(
+                  { screen: { $in: screenIds }, isDeleted: { $ne: true } },
+                  { isDeleted: true, deletedAt: now },
+              )
+            : Promise.resolve(),
+        screenIds.length
+            ? Seat.updateMany(
+                  { screenId: { $in: screenIds }, isDeleted: { $ne: true } },
+                  { isDeleted: true, deletedAt: now },
+              )
+            : Promise.resolve(),
+        screenIds.length
+            ? Screen.updateMany(
+                  { _id: { $in: screenIds }, isDeleted: { $ne: true } },
+                  { isDeleted: true, deletedAt: now },
+              )
+            : Promise.resolve(),
+    ]);
+
+    await theater.softDelete();
+    return true;
 };
 
 /**

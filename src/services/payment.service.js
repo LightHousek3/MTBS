@@ -64,19 +64,21 @@ const earnLoyaltyPoints = async (booking) => {
     const pointsEarned = Math.floor((booking.totalPrice || 0) * 0.01);
     if (pointsEarned <= 0) return 0;
 
-    const user = await User.findById(booking.user).select('loyaltyPoints');
-    if (!user) return pointsEarned;
+    const oldUser = await User.findByIdAndUpdate(
+        booking.user,
+        { $inc: { loyaltyPoints: pointsEarned } },
+        { new: false, select: 'loyaltyPoints' } 
+    );
 
-    const balanceBefore = user.loyaltyPoints || 0;
-    user.loyaltyPoints = balanceBefore + pointsEarned;
-    await user.save();
+    const balanceBefore = oldUser.loyaltyPoints || 0;
+    const balanceAfter = balanceBefore + pointsEarned;
 
     await LoyaltyTransaction.create({
-        user: user._id,
+        user: oldUser._id,
         type: LOYALTY_TRANSACTION_TYPE.EARN,
         points: pointsEarned,
         balanceBefore,
-        balanceAfter: user.loyaltyPoints,
+        balanceAfter,
         description: `Tích điểm từ booking ${booking._id}`,
     });
 

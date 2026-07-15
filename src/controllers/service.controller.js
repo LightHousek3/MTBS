@@ -47,10 +47,18 @@ const updateServiceStatus = asyncHandler(async (req, res) => {
 });
 
 const deleteService = asyncHandler(async (req, res) => {
-    await serviceService.deleteServiceById(req.params.id);
-    ResponseHandler.success(res, {
-        message: messages.CRUD.DELETED('Service'),
-    });
+    const status = await serviceService.deleteServiceById(req.params.id);
+
+    if (status) {
+        ResponseHandler.success(res, {
+            message: messages.CRUD.DELETED('Service'),
+            data: { status },
+        });
+    } else {
+        ResponseHandler.error(res, {
+            message: messages.CRUD.DELETED_FAIL('Service'),
+        });
+    }
 });
 
 module.exports = {
