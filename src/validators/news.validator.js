@@ -20,11 +20,11 @@ const createNews = {
             .required()
             .uri()
             .trim()
-            .max(255)
+            .max(2048)
             .messages({
                 'any.required': 'Image is required',
                 'string.uri': 'Image must be a valid URI',
-                'string.max': 'Image must not exceed 255 characters',
+                'string.max': 'Image must not exceed 2048 characters',
             }),
     }),
 };
@@ -53,10 +53,10 @@ const updateNews = {
             image: Joi.string()
                 .uri()
                 .trim()
-                .max(255)
+                .max(2048)
                 .messages({
                     'string.uri': 'Image must be a valid URI',
-                    'string.max': 'Image must not exceed 255 characters',
+                    'string.max': 'Image must not exceed 2048 characters',
                 }),
         })
         .min(1)
