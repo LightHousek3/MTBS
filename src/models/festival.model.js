@@ -74,3 +74,4 @@ if (mongoose.connection.readyState === 1) {
 }
 
 module.exports = mongoose.model("Festival", festivalSchema);
+ 
