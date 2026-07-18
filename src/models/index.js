@@ -18,6 +18,7 @@ const TicketPrice = require('./ticketPrice.model');
 const Seat = require('./seat.model');
 const Payment = require('./payment.model');
 const Waitlist = require('./waitlist.model');
+const Review = require('./review.model');
 
 module.exports = {
     User,
@@ -40,4 +41,5 @@ module.exports = {
     Seat,
     Payment,
     Waitlist,
+    Review,
 };

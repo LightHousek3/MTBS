@@ -1,0 +1,20 @@
+const blacklist = [
+  "spam",
+  "địt", "đụ", "dm", "đm", "dcm", "đcm", "vkl", "vl", 
+  "lồn", "lon", "cặc", "cac", "cc", "cl", "đĩ", "điếm", "phò",
+  "súc vật", "ngu", "chó", "mẹ mày", "con đĩ", "con cặc", "cái lồn",
+  "fuck", "bitch", "shit", "asshole", "dick", "pussy",
+  "nứng", "dâm", "sex", "đồi trụy", "khiêu dâm",
+  "lừa đảo", "scam", "cờ bạc", "tài xỉu", "lô đề", "cá độ"
+];
+
+const linkPatterns = [
+  /https?:\/\/[^\s]+/i,
+  /www\.[^\s]+/i,
+  /\b[\w-]+\.(com|net|org|io|vn|co|xyz|info|me)\b/i,
+];
+
+module.exports = {
+  blacklist,
+  linkPatterns,
+};
