@@ -151,6 +151,13 @@ const LOYALTY_TRANSACTION_TYPE = {
     REFUND: 'REFUND',
 };
 
+const REVIEW_STATUS = {
+    APPROVED: 'APPROVED',
+    PENDING: 'PENDING',
+    REJECTED: 'REJECTED',
+};
+
+
 module.exports = {
     httpStatus,
     messages,
@@ -180,4 +187,5 @@ module.exports = {
     REDEEM_STATUS,
     REDEEMGIFT_STATUS,
     LOYALTY_TRANSACTION_TYPE,
+    REVIEW_STATUS,
 };

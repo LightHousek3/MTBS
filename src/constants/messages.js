@@ -144,6 +144,16 @@ const messages = {
         NO_VALID_FIELDS_TO_UPDATE: 'Không có trường hợp lệ để cập nhật giao dịch đổi quà',
         CAN_ONLY_CANCEL_PENDING: 'Chỉ có thể hủy giao dịch đổi quà đang chờ xử lý',
     },
+
+    // Review
+    REVIEW: {
+        ALREADY_REVIEWED: 'Bạn đã đánh giá phim này rồi',
+        SHOWTIME_NOT_ENDED: 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc',
+        NOT_ELIGIBLE: 'Bạn chưa mua vé hoặc suất chiếu chưa kết thúc',
+        NOT_OWNER: 'Bạn không có quyền thao tác trên đánh giá này',
+        VIOLATION: 'Nội dung đánh giá chứa từ ngữ nhạy cảm hoặc vi phạm tiêu chuẩn cộng đồng',
+        PENDING_MODERATION: 'Đánh giá của bạn đang chờ kiểm duyệt do hệ thống phát hiện từ ngữ nhạy cảm',
+    },
 };
 
 module.exports = messages;
