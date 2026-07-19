@@ -2,6 +2,8 @@ const app = require('./app');
 const config = require('./config');
 const logger = require('./config/logger');
 const connectDB = require('./config/db');
+const { startBookingExpiryJob } = require('./jobs/bookingExpiry.job');
+const { startWaitlistJob } = require('./jobs/waitlist.job');
 
 let server;
 
@@ -9,7 +11,11 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
+    // Start cron-job
+    startBookingExpiryJob();
+
     server = app.listen(config.port, () => {
+        startWaitlistJob();
         logger.info(`
     ╔═══════════════════════════════════════════════════╗
     ║   Movie Ticket Booking API                        ║

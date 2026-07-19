@@ -13,7 +13,24 @@ const createBooking = {
                     quantity: Joi.number().integer().min(1).required(),
                 }),
             )
+            .unique('serviceId')
             .default([]),
+    }),
+};
+
+const getBookings = {
+    query: Joi.object().keys({
+        ...paginationQuery,
+        status: Joi.string().valid(...Object.values(BOOKING_STATUS)),
+        user: Joi.string().custom(objectId),
+        showtime: Joi.string().custom(objectId),
+        year: Joi.number().integer().min(2000).max(2100),
+    }),
+};
+
+const getBooking = {
+    params: Joi.object().keys({
+        id: Joi.string().required().custom(objectId),
     }),
 };
 
@@ -25,5 +42,7 @@ const cancelBooking = {
 
 module.exports = {
     createBooking,
+    getBookings,
+    getBooking,
     cancelBooking,
 };

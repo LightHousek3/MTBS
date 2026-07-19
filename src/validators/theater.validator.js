@@ -26,7 +26,7 @@ const getTheaters = {
         search: Joi.string().trim().allow(''),
         lat: Joi.number().min(-90).max(90),
         lng: Joi.number().min(-180).max(180),
-        maxDistance: Joi.number().integer().min(1).default(50000), // meters
+        maxDistance: Joi.number().integer().min(1).max(150000).default(50000), // meters
     }),
 };
 

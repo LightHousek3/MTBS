@@ -1,8 +1,8 @@
-const express = require("express");
-const { authenticate, authorize, validate } = require("../../src/middlewares");
-const { USER_ROLE } = require("../../src/constants");
-const { showtimeValidator } = require("../../src/validators");
-const { showtimeController } = require("../controllers");
+const express = require('express');
+const { authenticate, authorize, validate } = require('../../src/middlewares');
+const { USER_ROLE } = require('../../src/constants');
+const { showtimeValidator } = require('../../src/validators');
+const { showtimeController } = require('../controllers');
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ const router = express.Router();
  * @route   GET /api/v1/showtimes/
  * @access  Public
  */
-router.get("/", validate(showtimeValidator.getShowtimes), showtimeController.getShowtimes);
+router.get('/', validate(showtimeValidator.getShowtimes), showtimeController.getShowtimes);
 
 /**
  * @route   GET /api/v1/showtimes/:id/seating
@@ -22,16 +22,16 @@ router.get("/", validate(showtimeValidator.getShowtimes), showtimeController.get
  * @access  Public
  */
 router.get(
-  "/:id/seating",
-  validate(showtimeValidator.getShowtime), // we only need id properly validated, so reusing getShowtime is fine
-  showtimeController.getShowtimeSeating,
+    '/:id/seating',
+    validate(showtimeValidator.getShowtime), // we only need id properly validated, so reusing getShowtime is fine
+    showtimeController.getShowtimeSeating,
 );
 
 /**
  * @route   GET /api/v1/showtimes/:id
  * @access  Public
  */
-router.get("/:id", validate(showtimeValidator.getShowtime), showtimeController.getShowtime);
+router.get('/:id', validate(showtimeValidator.getShowtime), showtimeController.getShowtime);
 
 // ═══════════════════════════════════════════════
 // Admin-only routes
@@ -42,11 +42,11 @@ router.get("/:id", validate(showtimeValidator.getShowtime), showtimeController.g
  * @access  Private (Admin)
  */
 router.post(
-  "/",
-  authenticate,
-  authorize(USER_ROLE.ADMIN),
-  validate(showtimeValidator.createShowtime),
-  showtimeController.createShowtime,
+    '/',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    validate(showtimeValidator.createShowtime),
+    showtimeController.createShowtime,
 );
 
 /**
@@ -54,11 +54,11 @@ router.post(
  * @access  Private (Admin)
  */
 router.put(
-  "/:id",
-  authenticate,
-  authorize(USER_ROLE.ADMIN),
-  validate(showtimeValidator.updateShowtime),
-  showtimeController.updateShowtime,
+    '/:id',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    validate(showtimeValidator.updateShowtime),
+    showtimeController.updateShowtime,
 );
 
 /**
@@ -66,11 +66,11 @@ router.put(
  * @access  Private (Admin)
  */
 router.delete(
-  "/:id",
-  authenticate,
-  authorize(USER_ROLE.ADMIN),
-  validate(showtimeValidator.deleteShowtime),
-  showtimeController.deleteShowtime,
+    '/:id',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    validate(showtimeValidator.deleteShowtime),
+    showtimeController.deleteShowtime,
 );
 
 module.exports = router;

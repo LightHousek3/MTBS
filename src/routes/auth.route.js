@@ -80,6 +80,13 @@ router.post('/logout', validate(authValidator.logout), authController.logout);
  */
 router.post('/refresh-token', validate(authValidator.refreshToken), authController.refreshTokens);
 
+/**
+ * @route   GET /api/v1/auth/me
+ * @desc    Get latest authenticated user profile
+ * @access  Private
+ */
+router.get('/me', authenticate, authController.getMe);
+
 // ─── Forgot / Reset Password ──────────────────────────────────────────────────
 
 /**

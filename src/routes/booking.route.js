@@ -23,6 +23,33 @@ router.post(
     bookingController.createBooking,
 );
 
+router.get('/pending', authenticate, authorize(USER_ROLE.USER), bookingController.getPendingBooking);
+
+/**
+ * @route   GET /api/v1/bookings
+ * @desc    List bookings (admin sees all; user sees own)
+ * @access  Authenticated user
+ */
+router.get(
+    '/',
+    authenticate,
+    validate(bookingValidator.getBookings),
+    bookingController.getBookings,
+);
+
+/**
+ * @route   GET /api/v1/bookings/:id
+ * @desc    Get booking detail (admin or owner)
+ * @access  Authenticated user
+ */
+router.get(
+    '/:id',
+    authenticate,
+    authorize(USER_ROLE.USER, USER_ROLE.ADMIN),
+    validate(bookingValidator.getBooking),
+    bookingController.getBooking,
+);
+
 /**
  * @route   PATCH /api/v1/bookings/:id/cancel
  * @desc    Cancel a PENDING booking
@@ -33,6 +60,78 @@ router.patch(
     authenticate,
     validate(bookingValidator.cancelBooking),
     bookingController.cancelBooking,
+);
+
+/**
+ * @route   GET /api/v1/bookings/stats/overview
+ * @desc    Admin: booking overview stats
+ * @access  Admin
+ */
+router.get(
+    '/stats/overview',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    bookingController.getOverviewStats,
+);
+
+/**
+ * @route   GET /api/v1/bookings/stats/revenue-by-genre
+ * @desc    Admin: revenue grouped by genre
+ * @access  Admin
+ */
+router.get(
+    '/stats/revenue-by-genre',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    bookingController.getRevenueByGenre,
+);
+
+/**
+ * @route   GET /api/v1/bookings/stats/revenue-by-month
+ * @desc    Admin: revenue grouped by month
+ * @access  Admin
+ */
+router.get(
+    '/stats/revenue-by-month',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    bookingController.getRevenueByMonth,
+);
+
+/**
+ * @route   GET /api/v1/bookings/stats/revenue-by-year
+ * @desc    Admin: revenue grouped by year
+ * @access  Admin
+ */
+router.get(
+    '/stats/revenue-by-year',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    bookingController.getRevenueByYear,
+);
+
+/**
+ * @route   GET /api/v1/bookings/stats/revenue-by-theater
+ * @desc    Admin: revenue grouped by theater
+ * @access  Admin
+ */
+router.get(
+    '/stats/revenue-by-theater',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    bookingController.getRevenueByTheater,
+);
+
+/**
+ * @route   GET /api/v1/bookings/stats/export
+ * @desc    Admin: export full dashboard as Excel (.xlsx)
+ * @access  Admin
+ */
+router.get(
+    '/stats/export',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    bookingController.exportDashboard,
 );
 
 module.exports = router;

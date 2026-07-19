@@ -5,21 +5,38 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
 const MAX_HISTORY = 50;
 
+/**
+ * Chuẩn hoá số lượng kết quả trả về.
+ * - Nếu client không truyền hoặc truyền sai, dùng DEFAULT_LIMIT.
+ * - Luôn giới hạn trong khoảng 1..MAX_LIMIT để tránh query quá nhiều movie.
+ */
 const normalizeLimit = (limit) =>
     Math.min(Math.max(parseInt(limit, 10) || DEFAULT_LIMIT, 1), MAX_LIMIT);
 
+/**
+ * Lấy id dạng string từ ObjectId hoặc document đã populate.
+ * Dùng để so sánh id ổn định giữa dữ liệu lean, ObjectId và sub-document.
+ */
 const getId = (value) => {
     if (!value) return null;
     if (value._id) return value._id.toString();
     return value.toString();
 };
 
+/**
+ * Tăng điểm cho một key trong Map.
+ * Các preference như genre, actor, origin... đều được gom điểm bằng helper này.
+ */
 const increment = (map, key, weight = 1) => {
     if (!key) return;
     const normalizedKey = key.toString();
     map.set(normalizedKey, (map.get(normalizedKey) || 0) + weight);
 };
 
+/**
+ * Xác định các nhãn độ tuổi không phù hợp với tuổi user.
+ * Nếu không có tuổi hợp lệ, không áp dụng giới hạn độ tuổi ở tầng recommendation.
+ */
 const getAgeRestrictedRatings = (age) => {
     if (!Number.isFinite(age)) return [];
     if (age < 13) return ['T13', 'T16', 'T18', 'C'];
@@ -28,6 +45,12 @@ const getAgeRestrictedRatings = (age) => {
     return [];
 };
 
+/**
+ * Tạo filter movie đang còn khả dụng để đề xuất.
+ * - Movie còn chiếu nếu endDate >= hiện tại.
+ * - Movie sắp chiếu nếu releaseDate >= hiện tại.
+ * - Nếu user có tuổi hợp lệ, loại các ageRating vượt quá tuổi.
+ */
 const getActiveMovieFilter = (user) => {
     const now = new Date();
     const restrictedRatings = getAgeRestrictedRatings(Number(user?.age));
@@ -37,6 +60,11 @@ const getActiveMovieFilter = (user) => {
     };
 };
 
+/**
+ * Xây profile sở thích từ lịch sử booking đã xác nhận.
+ * Booking mới hơn có trọng số cao hơn; booking có tổng tiền lớn hơn được cộng nhẹ.
+ * Profile lưu các tín hiệu: genre, actor, quốc gia, định dạng, ageRating và movie đã xem.
+ */
 const buildPreferenceProfile = (bookings) => {
     const profile = {
         genres: new Map(),
@@ -66,14 +94,27 @@ const buildPreferenceProfile = (bookings) => {
     return profile;
 };
 
+/**
+ * Lấy điểm của một key trong Map, trả về 0 nếu key không tồn tại.
+ */
 const getMapValue = (map, key) => (key ? map.get(key.toString()) || 0 : 0);
 
+/**
+ * Tính điểm chất lượng chung của movie.
+ * - ratingAverage tối đa 5 sao, quy đổi tối đa 30 điểm.
+ * - totalBookings dùng log10 để phim rất nhiều booking không áp đảo toàn bộ điểm.
+ */
 const calculateQualityScore = (movie) => {
     const ratingScore = Math.min(Math.max(Number(movie.ratingAverage || 0), 0), 5) * 6;
     const bookingScore = Math.min(Math.log10(Number(movie.totalBookings || 0) + 1) * 8, 18);
     return ratingScore + bookingScore;
 };
 
+/**
+ * Tính điểm độ mới.
+ * - Movie sắp phát hành được cộng điểm cao nhất.
+ * - Movie mới phát hành trong 30/90 ngày vẫn được ưu tiên nhẹ.
+ */
 const calculateFreshnessScore = (movie) => {
     if (!movie.releaseDate) return 0;
     const releaseTime = new Date(movie.releaseDate).getTime();
@@ -86,6 +127,11 @@ const calculateFreshnessScore = (movie) => {
     return 0;
 };
 
+/**
+ * Chấm điểm một movie candidate theo profile của user.
+ * Điểm cá nhân hoá ưu tiên genre, sau đó actor, origin, format, ageRating,
+ * rồi cộng thêm chất lượng chung và độ mới để tránh đề xuất phim quá yếu.
+ */
 const scorePersonalizedMovie = (movie, profile) => {
     const matchedGenres = (movie.genres || []).filter((genre) =>
         profile.genres.has(getId(genre)),
@@ -132,6 +178,10 @@ const scorePersonalizedMovie = (movie, profile) => {
     };
 };
 
+/**
+ * Chuẩn hoá response cho từng movie đề xuất.
+ * Gắn thêm metadata recommendation để client biết điểm, lý do và các tín hiệu match.
+ */
 const toRecommendationResult = (movie, recommendation) => ({
     ...movie,
     recommendation: {
@@ -142,6 +192,10 @@ const toRecommendationResult = (movie, recommendation) => ({
     },
 });
 
+/**
+ * Luồng fallback khi user chưa đăng nhập hoặc chưa có booking hợp lệ.
+ * Trả về các movie đang khả dụng, ưu tiên rating, tổng booking và ngày phát hành.
+ */
 const getColdStartRecommendations = async ({ user, limit }) => {
     const movies = await Movie.find(getActiveMovieFilter(user))
         .populate('genres', 'name')
@@ -161,6 +215,12 @@ const getColdStartRecommendations = async ({ user, limit }) => {
     };
 };
 
+/**
+ * Lấy danh sách movie đề xuất cho user.
+ * - Không có user hoặc chưa có lịch sử booking CONFIRMED: dùng cold-start.
+ * - Có lịch sử: dựng profile, loại phim đã xem, chấm điểm các candidate còn khả dụng.
+ * - Nếu kết quả cá nhân hoá chưa đủ limit, bù bằng phim phổ biến/chất lượng cao.
+ */
 const getPersonalizedMovieRecommendations = async (user, options = {}) => {
     const limit = normalizeLimit(options.limit);
 

@@ -10,6 +10,7 @@ const promotionRoute = require('./promotion.routes');
 const movieRoute = require('./movie.route');
 const showtimeRoute = require('./showtime.route');
 const screenRoute = require('./screen.route');
+const seatRoute = require('./seat.route');
 const redeemRoute = require('./redeem.route');
 const redeemGiftRoute = require('./redeemGift.route');
 const recommendationRoute = require('./recommendation.route');
@@ -18,6 +19,8 @@ const bookingRoute = require('./booking.route');
 const paymentRoute = require('./payment.route');
 const userRoute = require('./user.route');
 
+const waitlistRoute = require('./waitlist.route');
+const reviewRoute = require('./review.route');
 const router = express.Router();
 
 const routes = [
@@ -32,6 +35,7 @@ const routes = [
     { path: '/movies', route: movieRoute },
     { path: '/showtimes', route: showtimeRoute },
     { path: '/screens', route: screenRoute },
+    { path: '/seats', route: seatRoute },
     { path: '/redeems', route: redeemRoute },
     { path: '/redeem-gifts', route: redeemGiftRoute },
     { path: '/recommendations', route: recommendationRoute },
@@ -39,6 +43,8 @@ const routes = [
     { path: '/bookings', route: bookingRoute },
     { path: '/payments', route: paymentRoute },
     { path: '/users', route: userRoute },
+    { path: '/waitlist', route: waitlistRoute },
+    { path: '/reviews', route: reviewRoute },
 ];
 
 routes.forEach((route) => {

@@ -90,6 +90,9 @@ const config = {
         facebookAppSecret: process.env.FACEBOOK_APP_SECRET || '',
         facebookGraphApiVersion: process.env.FACEBOOK_GRAPH_API_VERSION || 'v23.0',
     },
+    gemini: {
+        apiKey: process.env.GEMINI_API_KEY || "",
+    }
 };
 
 module.exports = config;

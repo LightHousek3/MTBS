@@ -78,6 +78,18 @@ const messages = {
             'Không thể xác định tọa độ cho địa chỉ đã cung cấp. Vui lòng thử một địa chỉ cụ thể hơn.',
         GEOCODE_SERVICE_ERROR:
             'Dịch vụ phân định vị trí tạm thời không khả dụng. Vui lòng thử lại sau.',
+        HAS_BOOKINGS: 'Không thể xóa rạp vì rạp này đã có booking',
+    },
+
+    // Genre
+    GENRE: {
+        IN_USE_BY_MOVIE: 'Không thể xóa thể loại vì đang được sử dụng trong phim',
+    },
+
+    // Service
+    SERVICE: {
+        NAME_THEATER_EXISTS: 'Dịch vụ với tên này đã tồn tại trong rạp',
+        HAS_BOOKINGS: 'Không thể xóa dịch vụ vì dịch vụ này đã có booking',
     },
     //Ticket Prices
     TICKETPRICE: {
@@ -104,6 +116,7 @@ const messages = {
         TICKET_PRICE_NOT_FOUND:
             'Không tìm thấy giá vé cho loại ghế, loại phim và lịch chiếu này. Vui lòng liên hệ hỗ trợ.',
         SERVICE_NOT_AVAILABLE: 'Một hoặc nhiều dịch vụ đã chọn không khả dụng',
+        SERVICE_INSUFFICIENT: (serviceName) => `Dịch vụ "${serviceName}" không đủ số lượng`,
         SERVICE_NOT_IN_THEATER: 'Một hoặc nhiều dịch vụ không thuộc rạp chiếu này',
         PROMOTION_NOT_APPLICABLE: 'Mã khuyến mãi không áp dụng cho đơn đặt vé này',
     },
@@ -118,6 +131,28 @@ const messages = {
         BOOKING_EXPIRED: 'Đơn đặt vé đã hết hạn. Vui lòng đặt vé mới.',
         INVALID_SIGNATURE: 'Chữ ký thanh toán không hợp lệ',
         VNPAY_URL_CREATED: 'Tạo đường dẫn thanh toán VNPay thành công',
+    },
+
+    // Redeem
+    REDEEM: {
+        CANNOT_DELETE_HAS_GIFT: 'Không thể xóa quà đã có giao dịch đổi quà',
+        INVALID_AMOUNT: 'Số lượng quà đổi không hợp lệ',
+        NOT_AVAILABLE: 'Quà đổi điểm không khả dụng',
+        NOT_ENOUGH_QUANTITY: 'Số lượng quà không đủ',
+        NOT_ENOUGH_POINTS: 'Điểm tích lũy không đủ để đổi quà',
+        INVALID_STATUS_TRANSITION: 'Trạng thái giao dịch đổi quà không hợp lệ',
+        NO_VALID_FIELDS_TO_UPDATE: 'Không có trường hợp lệ để cập nhật giao dịch đổi quà',
+        CAN_ONLY_CANCEL_PENDING: 'Chỉ có thể hủy giao dịch đổi quà đang chờ xử lý',
+    },
+
+    // Review
+    REVIEW: {
+        ALREADY_REVIEWED: 'Bạn đã đánh giá phim này rồi',
+        SHOWTIME_NOT_ENDED: 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc',
+        NOT_ELIGIBLE: 'Bạn chưa mua vé hoặc suất chiếu chưa kết thúc',
+        NOT_OWNER: 'Bạn không có quyền thao tác trên đánh giá này',
+        VIOLATION: 'Nội dung đánh giá chứa từ ngữ nhạy cảm hoặc vi phạm tiêu chuẩn cộng đồng',
+        PENDING_MODERATION: 'Đánh giá của bạn đang chờ kiểm duyệt do hệ thống phát hiện từ ngữ nhạy cảm',
     },
 };
 

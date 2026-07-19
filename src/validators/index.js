@@ -14,6 +14,8 @@ const bookingValidator = require('./booking.validator');
 const paymentValidator = require('./payment.validator');
 const newsValidator = require('./news.validator');
 const festivalValidator = require('./festival.validator');
+const waitlistValidator = require('./waitlist.validator');
+const reviewValidator = require('./review.validator');
 
 module.exports = {
     authValidator,
@@ -32,4 +34,6 @@ module.exports = {
     paymentValidator,
     newsValidator,
     festivalValidator,
+    waitlistValidator,
+    reviewValidator,
 };

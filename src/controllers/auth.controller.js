@@ -147,6 +147,17 @@ const refreshTokens = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /auth/me
+ * Return the latest authenticated user profile.
+ */
+const getMe = asyncHandler(async (req, res) => {
+    ResponseHandler.success(res, {
+        message: messages.CRUD.FETCHED('User'),
+        data: req.user,
+    });
+});
+
+/**
  * POST /auth/forgot-password
  * Send password reset email
  */
@@ -201,5 +212,6 @@ module.exports = {
     loginWithFacebook,
     logout,
     refreshTokens,
+    getMe,
     forgotPassword,
 };

@@ -20,7 +20,7 @@ const redeemSchema = new mongoose.Schema(
     pointsRequired: {
       type: Number,
       required: true,
-      min: 0,
+      min: 1,
     },
     image: {
       url: String,
@@ -29,7 +29,6 @@ const redeemSchema = new mongoose.Schema(
     quantity: {
       type: Number,
       min: 0,
-      default: 0,
     },
     status: {
       type: String,

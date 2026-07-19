@@ -40,6 +40,9 @@ const redeemGiftSchema = new mongoose.Schema(
     expectedDeliveryDate: {
       type: Date,
     },
+    deliveredAt: {
+      type: Date,
+    },
     status: {
       type: String,
       enum: Object.values(REDEEMGIFT_STATUS),

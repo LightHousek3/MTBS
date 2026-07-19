@@ -1,9 +1,11 @@
 const crypto = require('crypto');
-const { Payment, Booking } = require('../models');
+const QRCode = require('qrcode');
+const { Payment, Booking, Movie, User, LoyaltyTransaction } = require('../models');
 const { ApiError } = require('../utils');
-const { messages, BOOKING_STATUS } = require('../constants');
+const { messages, BOOKING_STATUS, PAYMENT_STATUS, LOYALTY_TRANSACTION_TYPE } = require('../constants');
 const config = require('../config');
 const logger = require('../config/logger');
+const { refundBookingServices } = require('./helpers/serviceStock');
 
 // ── VNPay utilities ───────────────────────────────────────
 
@@ -39,6 +41,50 @@ const computeHmacSha512 = (secretKey, data) => {
     return crypto.createHmac('sha512', secretKey).update(Buffer.from(data, 'utf-8')).digest('hex');
 };
 
+const buildBookingQrCode = async ({ booking, payment }) => {
+    const payload = {
+        bookingId: String(booking._id),
+        paymentId: String(payment._id),
+        userId: String(booking.user),
+        showtimeId: String(booking.showtime._id || booking.showtime),
+        movieId: String(booking.showtime.movie?._id || booking.showtime.movie || ''),
+        status: BOOKING_STATUS.CONFIRMED,
+        totalPrice: booking.totalPrice,
+        paidAt: payment.paymentTime.toISOString(),
+    };
+
+    return QRCode.toDataURL(JSON.stringify(payload), {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 320,
+    });
+};
+
+const earnLoyaltyPoints = async (booking) => {
+    const pointsEarned = Math.floor((booking.totalPrice || 0) * 0.01);
+    if (pointsEarned <= 0) return 0;
+
+    const oldUser = await User.findByIdAndUpdate(
+        booking.user,
+        { $inc: { loyaltyPoints: pointsEarned } },
+        { new: false, select: 'loyaltyPoints' } 
+    );
+
+    const balanceBefore = oldUser.loyaltyPoints || 0;
+    const balanceAfter = balanceBefore + pointsEarned;
+
+    await LoyaltyTransaction.create({
+        user: oldUser._id,
+        type: LOYALTY_TRANSACTION_TYPE.EARN,
+        points: pointsEarned,
+        balanceBefore,
+        balanceAfter,
+        description: `Tích điểm từ booking ${booking._id}`,
+    });
+
+    return pointsEarned;
+};
+
 /**
  * Verify VNPay's secure hash from a set of params
  */
@@ -46,10 +92,14 @@ const verifyVnpaySignature = (params) => {
     const receivedHash = params['vnp_SecureHash'];
     if (!receivedHash) return false;
 
-    // Remove hash fields before verification
-    const signParams = { ...params };
-    delete signParams['vnp_SecureHash'];
-    delete signParams['vnp_SecureHashType'];
+    // VNPay signs only its own vnp_* fields. Internal return URL query params
+    // (for example appReturnUrl) must never participate in checksum validation.
+    const signParams = Object.fromEntries(
+        Object.entries(params).filter(
+            ([key]) =>
+                key.startsWith('vnp_') && key !== 'vnp_SecureHash' && key !== 'vnp_SecureHashType',
+        ),
+    );
 
     const signData = buildSortedQueryString(signParams);
     const expectedHash = computeHmacSha512(config.vnpay.hashSecret, signData);
@@ -67,8 +117,8 @@ const verifyVnpaySignature = (params) => {
  * @param {string} clientIp    - Client's real IP address
  * @returns { paymentUrl }
  */
-const createVnpayPayment = async ({ bookingId, userId, clientIp }) => {
-    const booking = await Booking.findById(bookingId);
+const createVnpayPayment = async ({ bookingId, userId, clientIp, appReturnUrl }) => {
+    const booking = await Booking.findOne({ _id: bookingId, user: userId });
 
     if (!booking) {
         throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
@@ -119,7 +169,9 @@ const createVnpayPayment = async ({ bookingId, userId, clientIp }) => {
         vnp_Locale: 'vn',
         vnp_OrderInfo: `Thanh toan ve phim ${vnpTxnRef}`,
         vnp_OrderType: 'billpayment',
-        vnp_ReturnUrl: config.vnpay.returnUrl,
+        vnp_ReturnUrl: appReturnUrl
+            ? `${config.vnpay.returnUrl}${config.vnpay.returnUrl.includes('?') ? '&' : '?'}appReturnUrl=${encodeURIComponent(appReturnUrl)}`
+            : config.vnpay.returnUrl,
         vnp_TxnRef: vnpTxnRef,
         vnp_ExpireDate: expireDate,
     };
@@ -177,31 +229,104 @@ const handleVnpayIpn = async (ipnParams) => {
     }
 
     if (vnpResponseCode === '00') {
-        // Payment successful
-        payment.paymentStatus = 'COMPLETED';
-        payment.transactionNo = vnpTransactionNo;
-        payment.paymentTime = new Date();
-        await payment.save();
+        const paymentTime = new Date();
+        const claimedPayment = await Payment.findOneAndUpdate(
+            { _id: payment._id, paymentStatus: PAYMENT_STATUS.PENDING },
+            {
+                $set: {
+                    paymentStatus: PAYMENT_STATUS.COMPLETED,
+                    transactionNo: vnpTransactionNo,
+                    paymentTime,
+                },
+            },
+            { new: true },
+        );
 
-        // Confirm booking
-        await Booking.findByIdAndUpdate(payment.bookingId, {
-            status: BOOKING_STATUS.CONFIRMED,
-            $unset: { expiresAt: '' },
+        if (!claimedPayment) {
+            logger.info(`VNPay IPN: payment already claimed txnRef=${vnpTxnRef}`);
+            return { RspCode: '02', Message: 'Order already confirmed' };
+        }
+
+        const booking = await Booking.findOneAndUpdate(
+            {
+                _id: claimedPayment.bookingId,
+                status: BOOKING_STATUS.PENDING,
+                expiresAt: { $gt: new Date() },
+            },
+            {
+                $set: { status: BOOKING_STATUS.CONFIRMED },
+                $unset: { expiresAt: '' },
+            },
+            {
+                new: true,
+            },
+        ).populate({
+            path: 'showtime',
+            select: 'movie',
         });
 
+        if (!booking) {
+            claimedPayment.paymentStatus = PAYMENT_STATUS.FAILED;
+            await claimedPayment.save();
+
+            logger.warn(
+                `VNPay IPN: booking is no longer payable txnRef=${vnpTxnRef}, booking=${claimedPayment.bookingId}`,
+            );
+            return { RspCode: '02', Message: 'Booking is no longer payable' };
+        }
+
+        const pointsEarned = await earnLoyaltyPoints(booking);
+        const qrCode = await buildBookingQrCode({ booking, payment: claimedPayment });
+        await Booking.updateOne(
+            { _id: booking._id },
+            {
+                $set: {
+                    pointsEarned,
+                    qrCode,
+                },
+            },
+        );
+        booking.pointsEarned = pointsEarned;
+        booking.qrCode = qrCode;
+
+        await Movie.updateOne(
+            { _id: booking.showtime.movie },
+            {
+                $inc: {
+                    totalBookings: 1,
+                },
+            },
+        );
+
         logger.info(
-            `VNPay IPN: payment confirmed txnRef=${vnpTxnRef}, booking=${payment.bookingId}`,
+            `VNPay IPN: payment confirmed txnRef=${vnpTxnRef}, booking=${claimedPayment.bookingId}`,
         );
         return { RspCode: '00', Message: 'Confirm Success' };
     } else {
         // Payment failed
-        payment.paymentStatus = 'FAILED';
-        await payment.save();
+        const failedPayment = await Payment.findOneAndUpdate(
+            { _id: payment._id, paymentStatus: PAYMENT_STATUS.PENDING },
+            { $set: { paymentStatus: PAYMENT_STATUS.FAILED } },
+            { new: true },
+        );
+        if (!failedPayment) {
+            logger.info(`VNPay IPN: payment already claimed txnRef=${vnpTxnRef}`);
+            return { RspCode: '02', Message: 'Order already confirmed' };
+        }
 
-        // Mark booking as cancelled if payment failed
-        await Booking.findByIdAndUpdate(payment.bookingId, {
-            status: BOOKING_STATUS.CANCELLED,
-        });
+        const cancelledBooking = await Booking.findOneAndUpdate(
+            {
+                _id: failedPayment.bookingId,
+                status: BOOKING_STATUS.PENDING,
+            },
+            {
+                $set: { status: BOOKING_STATUS.CANCELLED },
+                $unset: { expiresAt: '' },
+            },
+            { new: false },
+        ).select('services');
+
+        await refundBookingServices(cancelledBooking);
 
         logger.warn(`VNPay IPN: payment failed txnRef=${vnpTxnRef}, code=${vnpResponseCode}`);
         return { RspCode: '00', Message: 'Confirm Success' }; // Always 00 to acknowledge receipt
@@ -230,7 +355,7 @@ const handleVnpayReturn = async (returnParams) => {
     const vnpResponseCode = returnParams['vnp_ResponseCode'];
     const vnpTxnRef = returnParams['vnp_TxnRef'];
 
-    const payment = await Payment.findOne({ _id: vnpTxnRef }).populate('bookingId');
+    const payment = await Payment.findOne({ _id: vnpTxnRef });
 
     if (!payment) {
         return { success: false, message: messages.PAYMENT.NOT_FOUND, data: null };

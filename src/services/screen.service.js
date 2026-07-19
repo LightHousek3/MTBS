@@ -1,6 +1,8 @@
-const { Screen } = require('../models');
+const { Screen, Theater } = require('../models');
 const { ApiError } = require('../utils');
 const { httpStatus, messages } = require('../constants');
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const createScreen = async (body) => {
     // Check if screen with same name exists for the same theater
@@ -16,7 +18,7 @@ const createScreen = async (body) => {
     return Screen.create(body);
 };
 
-const getScreenList = async (filter, options) => {
+const getScreenList = async (filter, options = {}) => {
     const queryFilter = {};
 
     // Filter by theater
@@ -24,12 +26,27 @@ const getScreenList = async (filter, options) => {
         queryFilter.theater = filter.theater;
     }
 
-    // Text search in name
+    // Text search in screen name or related theater info.
     if (filter.search) {
-        queryFilter.name = { $regex: filter.search, $options: 'i' };
+        const searchRegex = { $regex: escapeRegExp(filter.search.trim()), $options: 'i' };
+        const theaters = await Theater.find({
+            $or: [
+                { name: searchRegex },
+                { address: searchRegex },
+                { location: searchRegex },
+            ],
+        }).select('_id');
+
+        queryFilter.$or = [
+            { name: searchRegex },
+            { theater: { $in: theaters.map((theater) => theater._id) } },
+        ];
     }
 
-    return Screen.paginate(queryFilter, options);
+    return Screen.paginate(queryFilter, {
+        ...options,
+        populate: options.populate || 'theater:name-address',
+    });
 };
 
 const getScreenById = async (id) => {
