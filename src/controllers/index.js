@@ -16,6 +16,7 @@ const ticketPriceController = require('./ticketPrice.controller');
 const seatController = require('./seat.controller');
 const bookingController = require('./booking.controller');
 const paymentController = require('./payment.controller');
+const userController = require('./user.controller');
 const waitlistController = require('./waitlist.controller');
 const reviewController = require('./review.controller');
 
@@ -38,6 +39,7 @@ module.exports = {
     seatController,
     bookingController,
     paymentController,
+    userController,
     waitlistController,
     reviewController,
 };

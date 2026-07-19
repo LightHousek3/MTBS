@@ -61,6 +61,34 @@ const forgotPassword = {
     }),
 };
 
+const changePassword = {
+    body: Joi.object().keys({
+        currentPassword: Joi.string().required(),
+        newPassword: Joi.string().required().custom(password),
+    }),
+};
+
+const updateProfile = {
+    body: Joi.object().keys({
+        firstName: Joi.string().max(10).trim(),
+        lastName: Joi.string().max(10).trim(),
+        avatar: Joi.string().uri().allow(null, ''),
+        address: Joi.string().max(255).trim().allow(null, ''),
+        phone: Joi.string().pattern(/^[0-9]{10,11}$/).allow(null, ''),
+        age: Joi.number().integer().min(1).max(100),
+        gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').trim(),
+    }),
+};
+
+const updateUserStatus = {
+    params: Joi.object().keys({
+        id: Joi.string().required().trim(),
+    }),
+    body: Joi.object().keys({
+        status: Joi.string().required().valid('ACTIVE', 'INACTIVE', 'BLOCKED'),
+    }),
+};
+
 const resetPassword = {
     query: Joi.object().keys({
         token: Joi.string().required(),
@@ -80,5 +108,8 @@ module.exports = {
     verifyEmail,
     resendVerificationEmail,
     forgotPassword,
+    changePassword,
+    updateProfile,
+    updateUserStatus,
     resetPassword,
 };
