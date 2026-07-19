@@ -6,6 +6,7 @@ const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
+const path = require('path');
 
 const config = require('./config');
 const corsOptions = require('./config/cors');
@@ -51,6 +52,7 @@ app.use(mongoSanitize());
 
 // Prevent HTTP parameter pollution
 app.use(hpp());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Compress responses
 app.use(compression());

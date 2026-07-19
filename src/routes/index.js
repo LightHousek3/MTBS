@@ -16,6 +16,7 @@ const recommendationRoute = require('./recommendation.route');
 const ticketPriceRoute = require('./ticketPrice.route');
 const bookingRoute = require('./booking.route');
 const paymentRoute = require('./payment.route');
+const userRoute = require('./user.route');
 
 const router = express.Router();
 
@@ -37,6 +38,7 @@ const routes = [
     { path: '/ticket-prices', route: ticketPriceRoute },
     { path: '/bookings', route: bookingRoute },
     { path: '/payments', route: paymentRoute },
+    { path: '/users', route: userRoute },
 ];
 
 routes.forEach((route) => {
