@@ -1,4 +1,4 @@
-const { Booking, Showtime, Seat, Service, Promotion, Payment } = require('../models');
+const { Booking, Showtime, Seat, Service, Promotion, Payment, RefundRequest } = require('../models');
 const { ApiError } = require('../utils');
 const {
     messages,
@@ -518,8 +518,12 @@ const getBookingByIdForAdmin = async (bookingId, requestingUser = null) => {
     }
 
     const payments = await Payment.find({ bookingId: booking._id }).sort({ createdAt: -1 });
+    const refundRequest = await RefundRequest.findOne({ bookingId: booking._id }).sort({
+        createdAt: -1,
+    });
     const bookingObject = booking.toObject();
     bookingObject.payments = payments;
+    bookingObject.refundRequest = refundRequest;
 
     return bookingObject;
 };

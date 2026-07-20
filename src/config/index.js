@@ -33,8 +33,7 @@ const config = {
             process.env.COOKIE_SAME_SITE ||
             (process.env.NODE_ENV === 'production' ? 'none' : 'lax'),
         refreshTokenMaxAgeMs:
-            parseInt(process.env.REFRESH_TOKEN_COOKIE_MAX_AGE_MS, 10) ||
-            7 * 24 * 60 * 60 * 1000,
+            parseInt(process.env.REFRESH_TOKEN_COOKIE_MAX_AGE_MS, 10) || 7 * 24 * 60 * 60 * 1000,
     },
 
     cors: {
@@ -84,6 +83,16 @@ const config = {
         ipnUrl: process.env.MOMO_IPN_URL || '',
     },
 
+    zalopay: {
+        appId: parseInt(process.env.ZALOPAY_APP_ID, 10) || 2554,
+        key1: process.env.ZALOPAY_KEY1 || '',
+        key2: process.env.ZALOPAY_KEY2 || '',
+        createUrl: process.env.ZALOPAY_CREATE_URL || '',
+        refundUrl: process.env.ZALOPAY_REFUND_URL || '',
+        returnUrl: process.env.ZALOPAY_RETURN_URL || '',
+        callbackUrl: process.env.ZALOPAY_CALLBACK_URL || '',
+    },
+
     socialLogin: {
         googleClientId: process.env.GOOGLE_CLIENT_ID || '',
         facebookAppId: process.env.FACEBOOK_APP_ID || '',
@@ -91,8 +100,8 @@ const config = {
         facebookGraphApiVersion: process.env.FACEBOOK_GRAPH_API_VERSION || 'v23.0',
     },
     gemini: {
-        apiKey: process.env.GEMINI_API_KEY || "",
-    }
+        apiKey: process.env.GEMINI_API_KEY || '',
+    },
 };
 
 module.exports = config;

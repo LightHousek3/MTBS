@@ -16,6 +16,7 @@ const newsValidator = require('./news.validator');
 const festivalValidator = require('./festival.validator');
 const waitlistValidator = require('./waitlist.validator');
 const reviewValidator = require('./review.validator');
+const refundRequestValidator = require('./refundRequest.validator');
 
 module.exports = {
     authValidator,
@@ -36,4 +37,5 @@ module.exports = {
     festivalValidator,
     waitlistValidator,
     reviewValidator,
+    refundRequestValidator,
 };

@@ -21,6 +21,7 @@ const userRoute = require('./user.route');
 
 const waitlistRoute = require('./waitlist.route');
 const reviewRoute = require('./review.route');
+const refundRequestRoute = require('./refundRequest.route');
 const router = express.Router();
 
 const routes = [
@@ -45,6 +46,7 @@ const routes = [
     { path: '/users', route: userRoute },
     { path: '/waitlist', route: waitlistRoute },
     { path: '/reviews', route: reviewRoute },
+    { path: '/refund-requests', route: refundRequestRoute },
 ];
 
 routes.forEach((route) => {

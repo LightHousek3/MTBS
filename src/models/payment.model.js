@@ -39,6 +39,25 @@ const paymentSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+
+        providerOrderId: {
+            type: String,
+            trim: true,
+            index: true,
+        },
+
+        requestId: {
+            type: String,
+            trim: true,
+        },
+
+        providerResponse: {
+            type: mongoose.Schema.Types.Mixed,
+        },
+
+        providerCallback: {
+            type: mongoose.Schema.Types.Mixed,
+        },
     },
     {
         timestamps: true,

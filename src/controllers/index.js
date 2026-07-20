@@ -19,6 +19,7 @@ const paymentController = require('./payment.controller');
 const userController = require('./user.controller');
 const waitlistController = require('./waitlist.controller');
 const reviewController = require('./review.controller');
+const refundRequestController = require('./refundRequest.controller');
 
 module.exports = {
     authController,
@@ -42,4 +43,5 @@ module.exports = {
     userController,
     waitlistController,
     reviewController,
+    refundRequestController,
 };

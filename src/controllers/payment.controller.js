@@ -27,6 +27,38 @@ const initiateVnpay = asyncHandler(async (req, res) => {
     });
 });
 
+const initiateMomo = asyncHandler(async (req, res) => {
+    const paymentUrl = await paymentService.createMomoPayment({
+        bookingId: req.body.bookingId,
+        userId: req.user.id,
+        appReturnUrl: req.body.appReturnUrl,
+    });
+
+    ResponseHandler.created(res, {
+        message: 'Tạo đường dẫn thanh toán MoMo thành công',
+        data: { paymentUrl },
+    });
+});
+
+const initiateZalopay = asyncHandler(async (req, res) => {
+    const clientIp =
+        req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+        req.socket?.remoteAddress ||
+        '127.0.0.1';
+
+    const paymentUrl = await paymentService.createZalopayPayment({
+        bookingId: req.body.bookingId,
+        userId: req.user.id,
+        clientIp,
+        appReturnUrl: req.body.appReturnUrl,
+    });
+
+    ResponseHandler.created(res, {
+        message: 'Tạo đường dẫn thanh toán ZaloPay thành công',
+        data: { paymentUrl },
+    });
+});
+
 /**
  * POST /payments/vnpay/ipn
  * VNPay IPN (Instant Payment Notification) — server-to-server callback.
@@ -49,21 +81,49 @@ const vnpayReturn = asyncHandler(async (req, res) => {
 
     const appReturnUrl = req.query.appReturnUrl;
     if (appReturnUrl) {
-        const bookingId = result?.data?.bookingId;
+        return res.redirect(302, paymentService.buildAppResultUrl({ appReturnUrl, result }));
+    }
 
-        const isSafeAppUrl = /^mtbs:\/\/\/payment-result(?:[?#]|$)/i.test(appReturnUrl);
-        const deepLink = new URL(isSafeAppUrl ? appReturnUrl : 'mtbs:///payment-result');
+    ResponseHandler.success(res, {
+        message: result.message,
+        data: result.data,
+        statusCode: result.success ? 200 : 400,
+    });
+});
 
-        deepLink.searchParams.set('success', String(result.success));
-        deepLink.searchParams.set('status', result.success ? 'success' : 'failed');
+const momoIpn = asyncHandler(async (req, res) => {
+    logger.info('MoMo IPN received', { orderId: req.body?.orderId });
+    const result = await paymentService.handleMomoIpn(req.body);
+    res.status(200).json(result);
+});
 
-        if (bookingId) {
-            deepLink.searchParams.set('bookingId', String(bookingId));
-        }
+const momoReturn = asyncHandler(async (req, res) => {
+    const result = await paymentService.handleMomoReturn(req.query);
 
-        if (result.message) deepLink.searchParams.set('message', result.message);
+    const appReturnUrl = req.query.appReturnUrl;
+    if (appReturnUrl) {
+        return res.redirect(302, paymentService.buildAppResultUrl({ appReturnUrl, result }));
+    }
 
-        return res.redirect(302, deepLink.toString());
+    ResponseHandler.success(res, {
+        message: result.message,
+        data: result.data,
+        statusCode: result.success ? 200 : 400,
+    });
+});
+
+const zalopayCallback = asyncHandler(async (req, res) => {
+    logger.info('ZaloPay callback received');
+    const result = await paymentService.handleZalopayCallback(req.body);
+    res.status(200).json(result);
+});
+
+const zalopayReturn = asyncHandler(async (req, res) => {
+    const result = await paymentService.handleZalopayReturn(req.query);
+
+    const appReturnUrl = req.query.appReturnUrl;
+    if (appReturnUrl) {
+        return res.redirect(302, paymentService.buildAppResultUrl({ appReturnUrl, result }));
     }
 
     ResponseHandler.success(res, {
@@ -75,6 +135,12 @@ const vnpayReturn = asyncHandler(async (req, res) => {
 
 module.exports = {
     initiateVnpay,
+    initiateMomo,
+    initiateZalopay,
     vnpayIpn,
     vnpayReturn,
+    momoIpn,
+    momoReturn,
+    zalopayCallback,
+    zalopayReturn,
 };

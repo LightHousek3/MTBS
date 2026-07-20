@@ -17,6 +17,20 @@ router.post(
     paymentController.initiateVnpay,
 );
 
+router.post(
+    '/momo',
+    authenticate,
+    validate(paymentValidator.initiateMomo),
+    paymentController.initiateMomo,
+);
+
+router.post(
+    '/zalopay',
+    authenticate,
+    validate(paymentValidator.initiateZalopay),
+    paymentController.initiateZalopay,
+);
+
 /**
  * @route   GET /api/v1/payments/vnpay/ipn
  * @desc    VNPay IPN callback (server-to-server). No auth required.
@@ -30,5 +44,12 @@ router.get('/vnpay/ipn', paymentController.vnpayIpn);
  * @access  Public
  */
 router.get('/vnpay/return', paymentController.vnpayReturn);
+
+router.post('/momo/ipn', paymentController.momoIpn);
+router.get('/momo/return', paymentController.momoReturn);
+
+router.post('/zalopay/ipn', paymentController.zalopayCallback);
+router.post('/zalopay/callback', paymentController.zalopayCallback);
+router.get('/zalopay/return', paymentController.zalopayReturn);
 
 module.exports = router;

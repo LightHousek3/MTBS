@@ -1,7 +1,7 @@
 const Joi = require('joi');
 const { objectId } = require('./custom.validator');
 
-const initiateVnpay = {
+const initiatePayment = {
     body: Joi.object().keys({
         bookingId: Joi.string().required().custom(objectId),
         appReturnUrl: Joi.string()
@@ -11,5 +11,7 @@ const initiateVnpay = {
 };
 
 module.exports = {
-    initiateVnpay,
+    initiateVnpay: initiatePayment,
+    initiateMomo: initiatePayment,
+    initiateZalopay: initiatePayment,
 };

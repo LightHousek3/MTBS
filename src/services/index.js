@@ -19,6 +19,7 @@ const userService = require('./user.service');
 const statisticService = require('./statistic.service');
 const waitlistService = require('./waitlist.service');
 const reviewService = require('./review.service');
+const refundRequestService = require('./refundRequest.service');
 
 module.exports = {
     authService,
@@ -42,4 +43,5 @@ module.exports = {
     statisticService,
     waitlistService,
     reviewService,
+    refundRequestService,
 };

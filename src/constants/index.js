@@ -115,6 +115,7 @@ const PAYMENT_STATUS = {
     PENDING: 'PENDING',
     COMPLETED: 'COMPLETED',
     FAILED: 'FAILED',
+    CANCELLED: 'CANCELLED',
     REFUNDED: 'REFUNDED',
 };
 
@@ -123,6 +124,13 @@ const BOOKING_STATUS = {
     CONFIRMED: 'CONFIRMED',
     CANCELLED: 'CANCELLED',
     REFUNDED: 'REFUNDED',
+};
+
+const REFUND_REQUEST_STATUS = {
+    PENDING: 'PENDING',
+    APPROVED: 'APPROVED',
+    REJECTED: 'REJECTED',
+    CANCELLED: 'CANCELLED',
 };
 
 /** Minutes a seat hold is reserved before auto-release */
@@ -182,6 +190,7 @@ module.exports = {
     PAYMENT_METHOD,
     PAYMENT_STATUS,
     BOOKING_STATUS,
+    REFUND_REQUEST_STATUS,
     BOOKING_HOLD_MINUTES,
     DAY_TYPE,
     REDEEM_STATUS,
