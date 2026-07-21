@@ -28,7 +28,7 @@ const initiateVnpay = asyncHandler(async (req, res) => {
 });
 
 const initiateMomo = asyncHandler(async (req, res) => {
-    const paymentUrl = await paymentService.createMomoPayment({
+    const paymentSession = await paymentService.createMomoPayment({
         bookingId: req.body.bookingId,
         userId: req.user.id,
         appReturnUrl: req.body.appReturnUrl,
@@ -36,7 +36,21 @@ const initiateMomo = asyncHandler(async (req, res) => {
 
     ResponseHandler.created(res, {
         message: 'Tạo đường dẫn thanh toán MoMo thành công',
-        data: { paymentUrl },
+        data: paymentSession,
+    });
+});
+
+const expireMomo = asyncHandler(async (req, res) => {
+    const result = await paymentService.expireMomoPayment({
+        paymentId: req.params.paymentId,
+        userId: req.user.id,
+    });
+
+    ResponseHandler.success(res, {
+        message: result.expired
+            ? 'Phiên thanh toán MoMo đã hết hạn'
+            : 'Giao dịch đã được xử lý',
+        data: result,
     });
 });
 
@@ -136,6 +150,7 @@ const zalopayReturn = asyncHandler(async (req, res) => {
 module.exports = {
     initiateVnpay,
     initiateMomo,
+    expireMomo,
     initiateZalopay,
     vnpayIpn,
     vnpayReturn,

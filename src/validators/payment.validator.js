@@ -10,8 +10,15 @@ const initiatePayment = {
     }),
 };
 
+const expireMomo = {
+    params: Joi.object().keys({
+        paymentId: Joi.string().required().custom(objectId),
+    }),
+};
+
 module.exports = {
     initiateVnpay: initiatePayment,
     initiateMomo: initiatePayment,
+    expireMomo,
     initiateZalopay: initiatePayment,
 };
