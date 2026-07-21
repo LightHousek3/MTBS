@@ -1,9 +1,46 @@
 const { News } = require('../models');
 const { ApiError } = require('../utils');
-const { httpStatus, messages } = require('../constants');
+const { messages } = require('../constants');
+
+const DUPLICATE_TITLE_MESSAGE = 'Tiêu đề tin tức đã tồn tại';
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const ensureUniqueTitle = async (title, ignoreId = null) => {
+    const normalizedTitle = title?.trim();
+    if (!normalizedTitle) {
+        return;
+    }
+
+    const query = {
+        title: {
+            $regex: `^${escapeRegExp(normalizedTitle)}$`,
+            $options: 'i',
+        },
+    };
+
+    if (ignoreId) {
+        query._id = { $ne: ignoreId };
+    }
+
+    const existingNews = await News.findOne(query);
+    if (existingNews) {
+        throw ApiError.conflict(DUPLICATE_TITLE_MESSAGE);
+    }
+};
 
 const createNews = async (body) => {
-    return News.create(body);
+    await ensureUniqueTitle(body.title);
+
+    try {
+        return await News.create(body);
+    } catch (error) {
+        if (error?.code === 11000) {
+            throw ApiError.conflict(DUPLICATE_TITLE_MESSAGE);
+        }
+
+        throw error;
+    }
 };
 
 const getNewsList = async (filter, options) => {
@@ -33,9 +70,22 @@ const updateNewsById = async (id, updateBody) => {
         throw ApiError.notFound(messages.CRUD.NOT_FOUND('News'));
     }
 
+    if (updateBody.title) {
+        await ensureUniqueTitle(updateBody.title, id);
+    }
+
     Object.assign(news, updateBody);
     news.updatedAt = new Date();
-    return news.save();
+
+    try {
+        return await news.save();
+    } catch (error) {
+        if (error?.code === 11000) {
+            throw ApiError.conflict(DUPLICATE_TITLE_MESSAGE);
+        }
+
+        throw error;
+    }
 };
 
 const deleteNewsById = async (id) => {

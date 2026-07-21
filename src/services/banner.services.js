@@ -20,10 +20,19 @@ const getBanners = async (filter, options) => {
         queryFilter.type = filter.type;
     }
 
-    // Text search
-    if (filter.search) {
-        queryFilter.$or = [{ url: { $regex: filter.search, $options: 'i' } }];
+    if (filter.createdAt) {
+        const startOfDay = new Date(filter.createdAt);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
+        queryFilter.createdAt = {
+            $gte: startOfDay,
+            $lt: endOfDay,
+        };
     }
+
     return Banner.paginate(queryFilter, options);
 };
 

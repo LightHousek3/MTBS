@@ -11,7 +11,7 @@ const createBanner = asyncHandler(async (req, res) => {
 });
 
 const getBanners = asyncHandler(async (req, res) => {
-    const filter = pick(req.query, ['type', 'search']);
+    const filter = pick(req.query, ['type', 'createdAt']);
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
     const result = await bannerService.getBanners(filter, options);
 
