@@ -68,13 +68,6 @@ const refundRequestSchema = new mongoose.Schema(
     },
 );
 
-refundRequestSchema.index(
-    { bookingId: 1, status: 1 },
-    {
-        unique: true,
-        partialFilterExpression: { status: REFUND_REQUEST_STATUS.PENDING },
-    },
-);
 
 refundRequestSchema.plugin(toJSON);
 refundRequestSchema.plugin(paginate);

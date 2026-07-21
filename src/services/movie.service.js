@@ -55,6 +55,14 @@ const createMovie = async (body) => {
  * Nếu không có `location`, dùng `Movie.paginate` (plugin mongoose-paginate) để xử lý.
  */
 const getMovies = async (filter, options) => {
+    const availableForShowtime =
+        filter.availableForShowtime === true || filter.availableForShowtime === 'true';
+
+    if (availableForShowtime) {
+        filter.endDate = { $gte: new Date() };
+    }
+    delete filter.availableForShowtime;
+
     const keyword = filter.keyword?.trim();
     const titleKeyword = filter.title?.trim();
     const originKeyword = filter.origin?.trim();

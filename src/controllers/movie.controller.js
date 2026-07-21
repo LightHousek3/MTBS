@@ -40,6 +40,7 @@ const getMovies = asyncHandler(async (req, res) => {
     "ageRating",
     "releaseDate",
     "endDate",
+    "availableForShowtime",
     "location",
   ]); // {} nếu không muốn lọc theo trường nào
   const options = pick(req.query, ["sortBy", "limit", "page", "populate"]);
