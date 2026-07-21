@@ -25,6 +25,13 @@ router.post(
 );
 
 router.post(
+    '/momo/:paymentId/expire',
+    authenticate,
+    validate(paymentValidator.expireMomo),
+    paymentController.expireMomo,
+);
+
+router.post(
     '/zalopay',
     authenticate,
     validate(paymentValidator.initiateZalopay),

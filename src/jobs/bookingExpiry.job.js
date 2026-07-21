@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const { Booking, Payment } = require('../models');
-const { BOOKING_STATUS, PAYMENT_STATUS } = require('../constants');
+const { BOOKING_STATUS, PAYMENT_METHOD, PAYMENT_STATUS } = require('../constants');
 const logger = require('../config/logger');
 const { refundBookingServices } = require('../services/helpers/serviceStock');
 
@@ -10,7 +10,7 @@ const { refundBookingServices } = require('../services/helpers/serviceStock');
  * Runs every minute.
  * Logic:
  *  1. Find all PENDING bookings whose expiresAt has passed.
- *  2. FAILED any associated PENDING payment records.
+ *  2. Expire MoMo payments and fail other pending payment records.
  *  3. Update the expired booking.
  *
  */
@@ -46,9 +46,22 @@ const releaseExpiredBookings = async () => {
 
     const cancelledIds = cancelled.map((booking) => booking._id);
 
-    // Cancel any PENDING payment records tied to these bookings
     await Payment.updateMany(
-        { bookingId: { $in: cancelledIds }, paymentStatus: 'PENDING' },
+        {
+            bookingId: { $in: cancelledIds },
+            paymentMethod: PAYMENT_METHOD.MOMO,
+            paymentStatus: PAYMENT_STATUS.PENDING,
+        },
+        { paymentStatus: PAYMENT_STATUS.EXPIRED },
+    );
+
+    // Cancel other pending payment records tied to these bookings.
+    await Payment.updateMany(
+        {
+            bookingId: { $in: cancelledIds },
+            paymentMethod: { $ne: PAYMENT_METHOD.MOMO },
+            paymentStatus: PAYMENT_STATUS.PENDING,
+        },
         { paymentStatus: PAYMENT_STATUS.FAILED },
     );
 

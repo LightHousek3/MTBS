@@ -565,7 +565,85 @@ const createMomoPayment = async ({ bookingId, userId, appReturnUrl }) => {
     }
 
     logger.info(`MoMo payment created: orderId=${orderId}, booking=${bookingId}`);
-    return data.payUrl;
+    return {
+        paymentUrl: data.payUrl,
+        paymentId: String(payment._id),
+        expiresAt: booking.expiresAt,
+        serverTime: new Date(),
+    };
+};
+
+const expireMomoPayment = async ({ paymentId, userId }) => {
+    const payment = await Payment.findOne({
+        _id: paymentId,
+        paymentMethod: PAYMENT_METHOD.MOMO,
+    });
+
+    if (!payment) {
+        throw ApiError.notFound(messages.PAYMENT.NOT_FOUND);
+    }
+
+    const booking = await Booking.findOne({ _id: payment.bookingId, user: userId });
+    if (!booking) {
+        throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
+    }
+
+    if (
+        booking.status === BOOKING_STATUS.CONFIRMED ||
+        payment.paymentStatus === PAYMENT_STATUS.COMPLETED
+    ) {
+        return { expired: false, booking, payment };
+    }
+
+    const now = new Date();
+    if (booking.status === BOOKING_STATUS.PENDING && booking.expiresAt > now) {
+        throw ApiError.badRequest('Booking has not expired yet');
+    }
+
+    const expiredBooking = await Booking.findOneAndUpdate(
+        {
+            _id: booking._id,
+            user: userId,
+            status: BOOKING_STATUS.PENDING,
+            expiresAt: { $lte: now },
+        },
+        {
+            $set: { status: BOOKING_STATUS.CANCELLED },
+            $unset: { expiresAt: '' },
+        },
+        { new: false },
+    ).select('services');
+
+    if (expiredBooking) {
+        await refundBookingServices(expiredBooking);
+    }
+
+    const expiredPayment = await Payment.findOneAndUpdate(
+        {
+            _id: payment._id,
+            paymentStatus: {
+                $in: [
+                    PAYMENT_STATUS.PENDING,
+                    PAYMENT_STATUS.FAILED,
+                    PAYMENT_STATUS.CANCELLED,
+                ],
+            },
+        },
+        { $set: { paymentStatus: PAYMENT_STATUS.EXPIRED } },
+        { new: true },
+    );
+
+    const currentBooking = await Booking.findById(booking._id);
+    const currentPayment = expiredPayment || (await Payment.findById(payment._id));
+    const expired =
+        currentBooking?.status !== BOOKING_STATUS.CONFIRMED &&
+        currentPayment?.paymentStatus !== PAYMENT_STATUS.COMPLETED;
+
+    logger.info(
+        `MoMo payment session ${expired ? 'expired' : 'was already completed'}: ` +
+            `payment=${payment._id}, booking=${booking._id}`,
+    );
+    return { expired, booking: currentBooking, payment: currentPayment };
 };
 
 const handleMomoIpn = async (body) => {
@@ -939,6 +1017,7 @@ module.exports = {
     handleVnpayIpn,
     handleVnpayReturn,
     createMomoPayment,
+    expireMomoPayment,
     handleMomoIpn,
     handleMomoReturn,
     createZalopayPayment,
