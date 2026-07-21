@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { Review, Booking, Showtime, Movie } = require("../models");
 const { ApiError } = require("../utils");
 const { moderateReviewContent } = require("./moderation.service");
@@ -47,6 +48,32 @@ const ensureReviewPreconditions = async (userId, movieId) => {
   return endedBooking;
 };
 
+const recalculateMovieRating = async (movieId) => {
+  try {
+    const stats = await Review.aggregate([
+      {
+        $match: {
+          movie: new mongoose.Types.ObjectId(movieId),
+          status: REVIEW_STATUS.APPROVED,
+          isDeleted: { $ne: true },
+        },
+      },
+      {
+        $group: {
+          _id: "$movie",
+          ratingAverage: { $avg: "$rating" },
+        },
+      },
+    ]);
+
+    const ratingAverage = stats.length > 0 ? Math.round(stats[0].ratingAverage * 10) / 10 : 0;
+
+    await Movie.findByIdAndUpdate(movieId, { ratingAverage });
+  } catch (error) {
+    console.error("Error recalculating movie rating:", error);
+  }
+};
+
 const createReview = async (userId, body) => {
   const { movie: movieId, rating, content } = body;
 
@@ -54,7 +81,7 @@ const createReview = async (userId, body) => {
 
   const moderation = await moderateReviewContent(content ?? "");
 
-  return Review.create({
+  const review = await Review.create({
     user: userId,
     movie: movieId,
     rating,
@@ -63,6 +90,12 @@ const createReview = async (userId, body) => {
     riskScore: moderation.riskScore,
     aiScores: moderation.aiScores,
   });
+
+  if (review.status === REVIEW_STATUS.APPROVED) {
+    recalculateMovieRating(movieId); // Chạy ngầm không cần await
+  }
+
+  return review;
 };
 
 const getMyReviewForMovie = async (userId, movieId) => {
@@ -112,6 +145,7 @@ const updateReviewById = async (reviewId, userId, updateBody) => {
   }
 
   await review.save();
+  recalculateMovieRating(review.movie);
   return review;
 };
 
@@ -127,6 +161,7 @@ const updateReviewStatus = async (reviewId, status) => {
 
   review.status = status;
   await review.save();
+  recalculateMovieRating(review.movie);
   return review;
 };
 
@@ -140,6 +175,7 @@ const deleteReviewById = async (reviewId, userId) => {
     throw ApiError.forbidden(messages.REVIEW.NOT_OWNER);
   }
   await review.softDelete();
+  recalculateMovieRating(review.movie);
   return review;
 };
 
@@ -150,6 +186,7 @@ const deleteReviewByAdmin = async (reviewId) => {
   }
 
   await review.softDelete();
+  recalculateMovieRating(review.movie);
   return review;
 };
 
