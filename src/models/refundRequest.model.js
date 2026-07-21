@@ -44,6 +44,20 @@ const refundRequestSchema = new mongoose.Schema(
             trim: true,
             default: '',
         },
+        providerRefundId: {
+            type: String,
+            trim: true,
+            default: '',
+            index: true,
+        },
+        providerQueryResponse: {
+            type: mongoose.Schema.Types.Mixed,
+            default: null,
+        },
+        queriedAt: {
+            type: Date,
+            default: null,
+        },
         refundedAt: {
             type: Date,
             default: null,

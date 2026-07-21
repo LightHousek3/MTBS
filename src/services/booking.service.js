@@ -1,4 +1,12 @@
-const { Booking, Showtime, Seat, Service, Promotion, Payment, RefundRequest } = require('../models');
+const {
+    Booking,
+    Showtime,
+    Seat,
+    Service,
+    Promotion,
+    Payment,
+    RefundRequest,
+} = require('../models');
 const { ApiError } = require('../utils');
 const {
     messages,
@@ -453,10 +461,45 @@ const populateBooking = (query) =>
         .populate('seats.seat', 'seatNumber type')
         .populate('services.service', 'name type price imageUrl');
 
+const attachLatestRefundRequest = async (booking) => {
+    if (!booking) return booking;
+
+    const refundRequest = await RefundRequest.findOne({ bookingId: booking._id }).sort({
+        createdAt: -1,
+    });
+
+    const bookingObject = booking.toObject ? booking.toObject() : { ...booking };
+    bookingObject.refundRequest = refundRequest;
+    return bookingObject;
+};
+
+const attachLatestRefundRequests = async (bookings) => {
+    if (!Array.isArray(bookings) || bookings.length === 0) return bookings;
+
+    const bookingIds = bookings.map((booking) => booking._id || booking.id);
+    const refundRequests = await RefundRequest.find({ bookingId: { $in: bookingIds } }).sort({
+        createdAt: -1,
+    });
+
+    const latestByBookingId = new Map();
+    for (const refundRequest of refundRequests) {
+        const key = String(refundRequest.bookingId);
+        if (!latestByBookingId.has(key)) {
+            latestByBookingId.set(key, refundRequest);
+        }
+    }
+
+    return bookings.map((booking) => {
+        const bookingObject = booking.toObject ? booking.toObject() : { ...booking };
+        bookingObject.refundRequest = latestByBookingId.get(String(bookingObject._id)) || null;
+        return bookingObject;
+    });
+};
+
 const getBookingById = async (bookingId, userId) => {
     const booking = await populateBooking(Booking.findOne({ _id: bookingId, user: userId }));
     if (!booking) throw ApiError.notFound(messages.BOOKING.BOOKING_NOT_FOUND);
-    return booking;
+    return attachLatestRefundRequest(booking);
 };
 
 const getPendingBooking = async (userId) =>
@@ -492,11 +535,16 @@ const getBookings = async (filter, options, requestingUser = null) => {
         queryFilter.user = requestingUser.id;
     }
 
-    return Booking.paginate(queryFilter, {
+    const result = await Booking.paginate(queryFilter, {
         ...options,
         populate: options.populate || bookingPopulate,
         sortBy: options.sortBy || 'createdAt:desc',
     });
+
+    return {
+        ...result,
+        results: await attachLatestRefundRequests(result.results),
+    };
 };
 
 /**

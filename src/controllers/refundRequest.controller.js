@@ -74,6 +74,15 @@ const processRefundRequest = asyncHandler(async (req, res) => {
     });
 });
 
+const queryRefundStatus = asyncHandler(async (req, res) => {
+    const result = await refundRequestService.queryRefundStatus(req.params.id);
+
+    ResponseHandler.success(res, {
+        message: 'Truy vấn trạng thái hoàn tiền thành công',
+        data: result,
+    });
+});
+
 module.exports = {
     createRefundRequest,
     getRefundRequests,
@@ -81,4 +90,5 @@ module.exports = {
     getRefundRequestByBooking,
     cancelRefundRequest,
     processRefundRequest,
+    queryRefundStatus,
 };

@@ -838,6 +838,7 @@ const createMomoRefund = async ({ refundRequest, payment }) => {
 
     return {
         success: response.data?.resultCode === 0,
+        providerRefundId: orderId,
         response: response.data,
     };
 };
@@ -875,8 +876,62 @@ const createZalopayRefund = async ({ refundRequest, payment }) => {
 
     return {
         success: response.data?.return_code === 1 || response.data?.return_code === 3,
+        providerRefundId: mRefundId,
         response: response.data,
     };
+};
+
+const queryMomoRefund = async ({ refundRequest }) => {
+    const orderId = refundRequest.providerRefundId;
+    if (!orderId) {
+        throw ApiError.badRequest('Không tìm thấy mã hoàn tiền MoMo để truy vấn');
+    }
+
+    const requestId = `QUERY_${refundRequest._id}_${Date.now()}`;
+    const raw = [
+        `accessKey=${config.momo.accessKey}`,
+        `orderId=${orderId}`,
+        `partnerCode=${config.momo.partnerCode}`,
+        `requestId=${requestId}`,
+    ].join('&');
+
+    const payload = {
+        partnerCode: config.momo.partnerCode,
+        requestId,
+        orderId,
+        lang: 'vi',
+        signature: computeHmacSha256(config.momo.secretKey, raw),
+    };
+
+    const response = await axios.post(config.momo.queryUrl, payload, {
+        timeout: GATEWAY_TIMEOUT_MS,
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+    return response.data;
+};
+
+const queryZalopayRefund = async ({ refundRequest }) => {
+    const mRefundId = refundRequest.providerRefundId;
+    if (!mRefundId) {
+        throw ApiError.badRequest('Không tìm thấy mã hoàn tiền ZaloPay để truy vấn');
+    }
+
+    const timestamp = Date.now();
+    const macInput = [config.zalopay.appId, mRefundId, timestamp].join('|');
+    const payload = {
+        app_id: config.zalopay.appId,
+        m_refund_id: mRefundId,
+        timestamp,
+        mac: computeHmacSha256(config.zalopay.key1, macInput),
+    };
+
+    const response = await axios.post(config.zalopay.queryRefundUrl, payload, {
+        timeout: GATEWAY_TIMEOUT_MS,
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+    return response.data;
 };
 
 module.exports = {
@@ -891,6 +946,8 @@ module.exports = {
     handleZalopayReturn,
     createMomoRefund,
     createZalopayRefund,
+    queryMomoRefund,
+    queryZalopayRefund,
     buildAppResultUrl,
     buildJsonResponseText,
 };

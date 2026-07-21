@@ -49,5 +49,6 @@ module.exports = {
     getRefundRequest,
     getRefundRequestByBooking,
     cancelRefundRequest: getRefundRequest,
+    queryRefundStatus: getRefundRequest,
     processRefundRequest,
 };

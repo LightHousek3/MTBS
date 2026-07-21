@@ -46,6 +46,14 @@ router.patch(
     refundRequestController.processRefundRequest,
 );
 
+router.patch(
+    '/:id/query-status',
+    authenticate,
+    authorize(USER_ROLE.ADMIN),
+    validate(refundRequestValidator.queryRefundStatus),
+    refundRequestController.queryRefundStatus,
+);
+
 router.get(
     '/:id',
     authenticate,

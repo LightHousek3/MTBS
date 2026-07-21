@@ -48,6 +48,15 @@ const refundPopulate = [
 const stringifyResponse = (response) =>
     typeof response === 'string' ? response : paymentService.buildJsonResponseText(response);
 
+const parseStoredResponse = (response) => {
+    if (!response || typeof response !== 'string') return {};
+    try {
+        return JSON.parse(response);
+    } catch (error) {
+        return {};
+    }
+};
+
 const assertBeforeRefundCutoff = (booking) => {
     const startTime = new Date(booking.showtime?.startTime || booking.showtime?.startTime);
     if (!startTime || Number.isNaN(startTime.getTime())) {
@@ -245,6 +254,7 @@ const applySuccessfulRefund = async ({ refundRequest, payment, adminId, gatewayR
                 status: REFUND_REQUEST_STATUS.APPROVED,
                 processedBy: adminId,
                 response: stringifyResponse(gatewayResponse),
+                providerRefundId: gatewayResponse.providerRefundId || '',
                 refundedAt: new Date(),
             },
         },
@@ -313,8 +323,74 @@ const processRefundRequest = async ({ id, adminId, status, response, simulateSuc
         refundRequest,
         payment,
         adminId,
-        gatewayResponse: gatewayResult.response,
+        gatewayResponse: {
+            ...gatewayResult.response,
+            providerRefundId: gatewayResult.providerRefundId,
+        },
     });
+};
+
+const getProviderRefundId = (refundRequest) => {
+    if (refundRequest.providerRefundId) return refundRequest.providerRefundId;
+
+    const storedResponse = parseStoredResponse(refundRequest.response);
+    return (
+        storedResponse.providerRefundId ||
+        storedResponse.orderId ||
+        storedResponse.m_refund_id ||
+        storedResponse.requestId ||
+        ''
+    );
+};
+
+const queryRefundStatus = async (id) => {
+    const refundRequest = await RefundRequest.findById(id);
+    if (!refundRequest) {
+        throw ApiError.notFound(messages.CRUD.NOT_FOUND('Refund request'));
+    }
+
+    if (refundRequest.status !== REFUND_REQUEST_STATUS.APPROVED) {
+        throw ApiError.badRequest('Chỉ có thể truy vấn yêu cầu hoàn tiền đã được duyệt');
+    }
+
+    const payment = await Payment.findOne({
+        bookingId: refundRequest.bookingId,
+        paymentStatus: PAYMENT_STATUS.REFUNDED,
+    }).sort({ updatedAt: -1, paymentTime: -1, createdAt: -1 });
+
+    if (!payment) {
+        throw ApiError.notFound('Không tìm thấy giao dịch đã hoàn tiền');
+    }
+
+    const providerRefundId = getProviderRefundId(refundRequest);
+    refundRequest.providerRefundId = providerRefundId;
+
+    let queryResponse;
+    if (payment.paymentMethod === PAYMENT_METHOD.MOMO) {
+        queryResponse = await paymentService.queryMomoRefund({ refundRequest, payment });
+    } else if (payment.paymentMethod === PAYMENT_METHOD.ZALOPAY) {
+        queryResponse = await paymentService.queryZalopayRefund({ refundRequest, payment });
+    } else {
+        queryResponse = {
+            gateway: PAYMENT_METHOD.VNPAY,
+            simulated: true,
+            message: 'VNPay refund was simulated locally; no provider query API is configured.',
+            refundRequestId: String(refundRequest._id),
+            status: refundRequest.status,
+        };
+    }
+
+    refundRequest.providerQueryResponse = queryResponse;
+    refundRequest.queriedAt = new Date();
+    await refundRequest.save();
+
+    return {
+        refundRequest: await RefundRequest.findById(id).populate(refundPopulate),
+        paymentMethod: payment.paymentMethod,
+        providerRefundId,
+        queryResponse,
+        queriedAt: refundRequest.queriedAt,
+    };
 };
 
 module.exports = {
@@ -325,4 +401,5 @@ module.exports = {
     getRefundRequestByBooking,
     cancelRefundRequest,
     processRefundRequest,
+    queryRefundStatus,
 };

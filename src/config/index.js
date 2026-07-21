@@ -3,10 +3,16 @@ const path = require('path');
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+const BASE_URL = (process.env.APP_BASE_URL || '').replace(/\/+$/, '');
+const API_PREFIX = `/${(process.env.API_PREFIX || '/api/v1').replace(/^\/+|\/+$/g, '')}`;
+
+const buildPaymentUrl = (provider, action) =>
+    `${BASE_URL}${API_PREFIX}/payments/${provider}/${action}`;
+
 const config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT, 10) || 3000,
-    apiPrefix: process.env.API_PREFIX || '/api/v1',
+    apiPrefix: API_PREFIX,
 
     mongoose: {
         url: process.env.MONGODB_URI || '',
@@ -69,8 +75,8 @@ const config = {
         tmnCode: process.env.VNPAY_TMN_CODE || '',
         hashSecret: process.env.VNPAY_HASH_SECRET || '',
         url: process.env.VNPAY_URL || '',
-        returnUrl: process.env.VNPAY_RETURN_URL || '',
-        ipnUrl: process.env.VNPAY_IPN_URL || '',
+        returnUrl: process.env.VNPAY_RETURN_URL || buildPaymentUrl('vnpay', 'return'),
+        ipnUrl: process.env.VNPAY_IPN_URL || buildPaymentUrl('vnpay', 'ipn'),
     },
 
     momo: {
@@ -79,8 +85,9 @@ const config = {
         secretKey: process.env.MOMO_SECRET_KEY || '',
         apiUrl: process.env.MOMO_API_URL || '',
         refundUrl: process.env.MOMO_REFUND_URL || '',
-        returnUrl: process.env.MOMO_RETURN_URL || '',
-        ipnUrl: process.env.MOMO_IPN_URL || '',
+        queryUrl: process.env.MOMO_QUERY_URL || '',
+        returnUrl: process.env.MOMO_RETURN_URL || buildPaymentUrl('momo', 'return'),
+        ipnUrl: process.env.MOMO_IPN_URL || buildPaymentUrl('momo', 'ipn'),
     },
 
     zalopay: {
@@ -89,8 +96,9 @@ const config = {
         key2: process.env.ZALOPAY_KEY2 || '',
         createUrl: process.env.ZALOPAY_CREATE_URL || '',
         refundUrl: process.env.ZALOPAY_REFUND_URL || '',
-        returnUrl: process.env.ZALOPAY_RETURN_URL || '',
-        callbackUrl: process.env.ZALOPAY_CALLBACK_URL || '',
+        queryRefundUrl: process.env.ZALOPAY_QUERY_REFUND_URL || '',
+        returnUrl: process.env.ZALOPAY_RETURN_URL || buildPaymentUrl('zalopay', 'return'),
+        callbackUrl: process.env.ZALOPAY_CALLBACK_URL || buildPaymentUrl('zalopay', 'ipn'),
     },
 
     socialLogin: {
