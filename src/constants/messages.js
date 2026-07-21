@@ -133,6 +133,12 @@ const messages = {
         VNPAY_URL_CREATED: 'Tạo đường dẫn thanh toán VNPay thành công',
     },
 
+    // Refund
+    REFUND: {
+        NOT_ENOUGH_LOYALTY_POINTS: (required, current) =>
+            `Không đủ điểm tích lũy để yêu cầu hoàn tiền. Cần ${required} điểm nhưng hiện chỉ có ${current} điểm.`,
+    },
+
     // Redeem
     REDEEM: {
         CANNOT_DELETE_HAS_GIFT: 'Không thể xóa quà đã có giao dịch đổi quà',

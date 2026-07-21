@@ -17,6 +17,10 @@ const {
 } = require('../constants');
 const paymentService = require('./payment.service');
 const { refundBookingServices } = require('./helpers/serviceStock');
+const {
+    getRefundPointsRequirement,
+    assertRefundPointsBalance,
+} = require('./helpers/refundPolicy');
 
 const REFUND_CUTOFF_HOURS = 12;
 const REFUND_CUTOFF_MS = REFUND_CUTOFF_HOURS * 60 * 60 * 1000;
@@ -91,8 +95,24 @@ const getConfirmedBookingForRefund = async ({ bookingId, userId, requireOwner = 
     return booking;
 };
 
+const assertRefundEligibility = async ({ booking, userId }) => {
+    const requiredPoints = getRefundPointsRequirement(booking);
+    if (requiredPoints <= 0) return { requiredPoints: 0, currentPoints: 0 };
+
+    const user = await User.findById(userId).select('loyaltyPoints');
+    if (!user) {
+        throw ApiError.notFound(messages.CRUD.NOT_FOUND('User'));
+    }
+
+    const currentPoints = user.loyaltyPoints || 0;
+    assertRefundPointsBalance({ requiredPoints, currentPoints });
+
+    return { requiredPoints, currentPoints };
+};
+
 const createRefundRequest = async ({ bookingId, userId, reason }) => {
     const booking = await getConfirmedBookingForRefund({ bookingId, userId });
+    await assertRefundEligibility({ booking, userId });
 
     const existing = await RefundRequest.findOne({
         bookingId,
@@ -228,23 +248,27 @@ const applySuccessfulRefund = async ({ refundRequest, payment, adminId, gatewayR
         },
     );
 
-    if (booking.pointsEarned > 0) {
+    const pointsToDeduct = getRefundPointsRequirement(booking);
+    if (pointsToDeduct > 0) {
         const user = await User.findById(booking.user).select('loyaltyPoints');
-        if (user) {
-            const balanceBefore = user.loyaltyPoints || 0;
-            const deducted = Math.min(balanceBefore, booking.pointsEarned);
-            user.loyaltyPoints = balanceBefore - deducted;
-            await user.save();
-
-            await LoyaltyTransaction.create({
-                user: user._id,
-                type: LOYALTY_TRANSACTION_TYPE.SPEND,
-                points: deducted,
-                balanceBefore,
-                balanceAfter: user.loyaltyPoints,
-                description: `Thu hoi diem tu booking hoan tien ${booking._id}`,
-            });
+        if (!user) {
+            throw ApiError.notFound(messages.CRUD.NOT_FOUND('User'));
         }
+
+        const balanceBefore = user.loyaltyPoints || 0;
+        assertRefundPointsBalance({ requiredPoints: pointsToDeduct, currentPoints: balanceBefore });
+
+        user.loyaltyPoints = balanceBefore - pointsToDeduct;
+        await user.save();
+
+        await LoyaltyTransaction.create({
+            user: user._id,
+            type: LOYALTY_TRANSACTION_TYPE.SPEND,
+            points: pointsToDeduct,
+            balanceBefore,
+            balanceAfter: user.loyaltyPoints,
+            description: `Thu hoi diem tu booking hoan tien ${booking._id}`,
+        });
     }
 
     return RefundRequest.findOneAndUpdate(
@@ -286,11 +310,12 @@ const processRefundRequest = async ({ id, adminId, status, response, simulateSuc
         ).populate(refundPopulate);
     }
 
-    await getConfirmedBookingForRefund({
+    const booking = await getConfirmedBookingForRefund({
         bookingId: refundRequest.bookingId,
         userId: refundRequest.userId,
         requireOwner: false,
     });
+    await assertRefundEligibility({ booking, userId: refundRequest.userId });
 
     const payment = await findCompletedPayment(refundRequest.bookingId);
     let gatewayResult;
