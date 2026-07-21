@@ -66,7 +66,7 @@ const getBanners = {
         type: Joi.string()
             .valid(...Object.values(BANNER_TYPE))
             .optional(),
-        search: Joi.string().optional().trim(),
+        createdAt: Joi.date().optional(),
         sortBy: Joi.string().optional().trim(),
         limit: Joi.number().integer().min(1).optional(),
         page: Joi.number().integer().min(1).optional(),

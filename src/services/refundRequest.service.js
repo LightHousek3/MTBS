@@ -116,20 +116,28 @@ const createRefundRequest = async ({ bookingId, userId, reason }) => {
 
     const existing = await RefundRequest.findOne({
         bookingId,
-        status: { $in: [REFUND_REQUEST_STATUS.PENDING, REFUND_REQUEST_STATUS.APPROVED] },
     });
 
     if (existing) {
-        throw ApiError.conflict('Booking này đã có yêu cầu hoàn tiền');
+        throw ApiError.conflict('Booking này đã tạo yêu cầu hoàn tiền');
     }
 
-    const refundRequest = await RefundRequest.create({
-        bookingId,
-        userId,
-        reason,
-        status: REFUND_REQUEST_STATUS.PENDING,
-        refundAmount: booking.totalPrice,
-    });
+    let refundRequest;
+    try {
+        refundRequest = await RefundRequest.create({
+            bookingId,
+            userId,
+            reason,
+            status: REFUND_REQUEST_STATUS.PENDING,
+            refundAmount: booking.totalPrice,
+        });
+    } catch (error) {
+        if (error?.code === 11000) {
+            throw ApiError.conflict('Booking này đã tạo yêu cầu hoàn tiền');
+        }
+
+        throw error;
+    }
 
     return RefundRequest.findById(refundRequest._id).populate(refundPopulate);
 };

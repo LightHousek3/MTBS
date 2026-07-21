@@ -117,6 +117,7 @@ const getMovies = {
     ageRating: Joi.string().valid(...Object.values(AGE_RATING)),
     releaseDate: Joi.date(),
     endDate: Joi.date(),
+    availableForShowtime: Joi.boolean(),
     location: Joi.string(),
     sortBy: Joi.string(),
     limit: Joi.number().integer(),
