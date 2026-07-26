@@ -1,7 +1,6 @@
 const { User } = require('../models');
 const { ApiError } = require('../utils');
 const { messages, USER_STATUS, USER_AUTH_PROVIDER } = require('../constants');
-const tokenService = require('./token.service');
 
 const getProfileById = async (userId) => {
     const user = await User.findById(userId).select('-password -emailVerificationToken -emailVerificationExpires');
@@ -46,8 +45,11 @@ const changePasswordById = async (userId, currentPassword, newPassword) => {
         throw ApiError.notFound(messages.CRUD.NOT_FOUND('User'));
     }
 
-    if (!user.password || (user.authProvider || []).includes(USER_AUTH_PROVIDER.GOOGLE) || (user.authProvider || []).includes(USER_AUTH_PROVIDER.FACEBOOK)) {
-        throw ApiError.badRequest('Tài khoản này không hỗ trợ đổi mật khẩu bằng mật khẩu local');
+    const authProviders = new Set((user.authProvider || []).map((provider) => provider.toUpperCase()));
+    const isLocalOnly = authProviders.size === 1 && authProviders.has(USER_AUTH_PROVIDER.LOCAL);
+
+    if (!user.password || !isLocalOnly) {
+        throw ApiError.badRequest('Tài khoản liên kết mạng xã hội không hỗ trợ đổi mật khẩu trong hệ thống');
     }
 
     const isMatch = await user.isPasswordMatch(currentPassword);
@@ -55,9 +57,13 @@ const changePasswordById = async (userId, currentPassword, newPassword) => {
         throw ApiError.badRequest('Mật khẩu hiện tại không đúng');
     }
 
+    const isSamePassword = await user.isPasswordMatch(newPassword);
+    if (isSamePassword) {
+        throw ApiError.badRequest('Mật khẩu mới không được trùng với mật khẩu hiện tại');
+    }
+
     user.password = newPassword;
     await user.save();
-    await tokenService.revokeAllUserTokens(user._id);
 
     return user;
 };

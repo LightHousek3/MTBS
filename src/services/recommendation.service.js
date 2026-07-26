@@ -20,6 +20,7 @@ const normalizeLimit = (limit) =>
 const getId = (value) => {
     if (!value) return null;
     if (value._id) return value._id.toString();
+    if (value.id) return value.id.toString();
     return value.toString();
 };
 
@@ -32,6 +33,8 @@ const increment = (map, key, weight = 1) => {
     const normalizedKey = key.toString();
     map.set(normalizedKey, (map.get(normalizedKey) || 0) + weight);
 };
+
+const toIdList = (values) => Array.from(values).map(getId).filter(Boolean);
 
 /**
  * Xác định các nhãn độ tuổi không phù hợp với tuổi user.
@@ -100,6 +103,38 @@ const buildPreferenceProfile = (bookings) => {
 const getMapValue = (map, key) => (key ? map.get(key.toString()) || 0 : 0);
 
 /**
+ * Normalize lean Movie output to the same shape as normal Movie APIs.
+ * lean() skips the toJSON plugin, so mobile clients need id instead of _id.
+ */
+const normalizeLeanMovie = (movie) => {
+    const normalized = {
+        ...movie,
+        id: getId(movie),
+    };
+
+    delete normalized._id;
+    delete normalized.__v;
+    delete normalized.isDeleted;
+    delete normalized.deletedAt;
+
+    normalized.genres = (movie.genres || []).map((genre) => {
+        if (!genre || typeof genre !== 'object') {
+            return genre;
+        }
+
+        const normalizedGenre = {
+            ...genre,
+            id: getId(genre),
+        };
+        delete normalizedGenre._id;
+        delete normalizedGenre.__v;
+        return normalizedGenre;
+    });
+
+    return normalized;
+};
+
+/**
  * Tính điểm chất lượng chung của movie.
  * - ratingAverage tối đa 5 sao, quy đổi tối đa 30 điểm.
  * - totalBookings dùng log10 để phim rất nhiều booking không áp đảo toàn bộ điểm.
@@ -133,9 +168,7 @@ const calculateFreshnessScore = (movie) => {
  * rồi cộng thêm chất lượng chung và độ mới để tránh đề xuất phim quá yếu.
  */
 const scorePersonalizedMovie = (movie, profile) => {
-    const matchedGenres = (movie.genres || []).filter((genre) =>
-        profile.genres.has(getId(genre)),
-    );
+    const matchedGenres = (movie.genres || []).filter((genre) => profile.genres.has(getId(genre)));
     const matchedActors = (movie.actors || []).filter((actor) => profile.actors.has(actor));
 
     const genreScore = matchedGenres.reduce(
@@ -183,7 +216,7 @@ const scorePersonalizedMovie = (movie, profile) => {
  * Gắn thêm metadata recommendation để client biết điểm, lý do và các tín hiệu match.
  */
 const toRecommendationResult = (movie, recommendation) => ({
-    ...movie,
+    ...normalizeLeanMovie(movie),
     recommendation: {
         score: Number(recommendation.score.toFixed(2)),
         reasons: recommendation.reasons,
@@ -249,9 +282,10 @@ const getPersonalizedMovieRecommendations = async (user, options = {}) => {
     }
 
     const profile = buildPreferenceProfile(validBookings);
+    const watchedMovieIds = toIdList(profile.watchedMovieIds);
     const candidates = await Movie.find({
         ...getActiveMovieFilter(user),
-        _id: { $nin: Array.from(profile.watchedMovieIds) },
+        _id: { $nin: watchedMovieIds },
     })
         .populate('genres', 'name')
         .lean({ virtuals: true });
@@ -266,11 +300,11 @@ const getPersonalizedMovieRecommendations = async (user, options = {}) => {
         .map(({ movie, recommendation }) => toRecommendationResult(movie, recommendation));
 
     if (scoredMovies.length < limit) {
-        const existingIds = new Set(scoredMovies.map((movie) => getId(movie)));
+        const existingIds = toIdList(scoredMovies);
         const fallbackMovies = await Movie.find({
             ...getActiveMovieFilter(user),
             _id: {
-                $nin: [...Array.from(profile.watchedMovieIds), ...Array.from(existingIds)],
+                $nin: [...watchedMovieIds, ...existingIds],
             },
         })
             .populate('genres', 'name')

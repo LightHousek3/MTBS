@@ -12,10 +12,6 @@ const getProfile = asyncHandler(async (req, res) => {
 
 const updateProfile = asyncHandler(async (req, res) => {
     const updateBody = { ...req.body };
-    if (req.file) {
-        updateBody.avatar = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
-    }
-
     const user = await userService.updateProfileById(req.user._id, updateBody);
 
     ResponseHandler.success(res, {

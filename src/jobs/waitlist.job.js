@@ -21,7 +21,9 @@ const startWaitlistJob = () => {
             try {
                 const notifiedCount = await waitlistService.processReleaseNotifications();
                 if (notifiedCount > 0) {
-                    logger.info(`COMING_SOON_WATCHLIST_JOB: sent ${notifiedCount} notification emails`);
+                    logger.info(
+                        `COMING_SOON_WATCHLIST_JOB: sent ${notifiedCount} notification emails`,
+                    );
                 }
             } catch (error) {
                 logger.error('COMING_SOON_WATCHLIST_JOB_ERROR', error);

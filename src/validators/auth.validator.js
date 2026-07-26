@@ -63,8 +63,18 @@ const forgotPassword = {
 
 const changePassword = {
     body: Joi.object().keys({
-        currentPassword: Joi.string().required(),
-        newPassword: Joi.string().required().custom(password),
+        currentPassword: Joi.string().required().min(6).messages({
+            'string.min': 'Mật khẩu hiện tại phải có ít nhất 6 ký tự',
+        }),
+        newPassword: Joi.string()
+            .required()
+            .min(6)
+            .invalid(Joi.ref('currentPassword'))
+            .custom(password)
+            .messages({
+                'string.min': 'Mật khẩu mới phải có ít nhất 6 ký tự',
+                'any.invalid': 'Mật khẩu mới không được trùng với mật khẩu hiện tại',
+            }),
     }),
 };
 
